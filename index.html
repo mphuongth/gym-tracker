@@ -636,13 +636,16 @@
   function reqWake(){ try{ if("wakeLock" in navigator){ navigator.wakeLock.request("screen").then(function(w){ wakeLock=w; }).catch(function(){}); } }catch(e){} }
   function relWake(){ try{ if(wakeLock){ wakeLock.release(); wakeLock=null; } }catch(e){} }
 
+  var schedNodes = [];
   function startTimer(sec){
     ensureAudio();
     if(tId){ clearInterval(tId); tId=null; }
+    clearScheduled();
     tTotal = sec; tEnd = Date.now() + sec*1000;
     timerEl.classList.remove("flash");
     timerEl.classList.add("running");
     reqWake();
+    scheduleAlarm(sec);   // đặt trước tiếng bíp ở thời điểm tuyệt đối → vẫn kêu khi tắt màn hình
     tick();
     tId = setInterval(tick, 200);
   }
@@ -656,12 +659,12 @@
     if(tId){ clearInterval(tId); tId=null; }
     timerEl.classList.remove("running");
     relWake();
-    alarm();
     if(navigator.vibrate){ navigator.vibrate([300,120,300,120,500]); }
     flash();
   }
   function stopTimer(){
     if(tId){ clearInterval(tId); tId=null; }
+    clearScheduled();
     timerEl.classList.remove("running");
     relWake();
   }
@@ -669,24 +672,35 @@
     timerEl.classList.add("flash");
     setTimeout(function(){ timerEl.classList.remove("flash"); }, 1800);
   }
-  function tone(freq, start, dur){
+  function schedTone(freq, start, dur){
     var o=audioCtx.createOscillator(), g=audioCtx.createGain();
     o.type="square"; o.frequency.value=freq;
     o.connect(g); g.connect(audioCtx.destination);
     g.gain.setValueAtTime(0.0001, start);
-    g.gain.exponentialRampToValueAtTime(0.45, start+0.02);
+    g.gain.exponentialRampToValueAtTime(0.5, start+0.02);
     g.gain.exponentialRampToValueAtTime(0.0001, start+dur);
-    o.start(start); o.stop(start+dur+0.03);
+    o.start(start); o.stop(start+dur+0.05);
+    schedNodes.push(o);
   }
-  function alarm(){
-    ensureAudio();
+  function scheduleAlarm(sec){
     if(!audioCtx) return;
     try{
       if(audioCtx.state==="suspended") audioCtx.resume();
-      var t0 = audioCtx.currentTime + 0.02;
-      var seq = [880,660,880,660,988];
-      seq.forEach(function(f,i){ tone(f, t0 + i*0.26, 0.2); });
+      var base = audioCtx.currentTime + sec;
+      // Âm "giữ phiên" ~0 chạy suốt lúc nghỉ để phiên âm thanh không bị ngắt (giúp kêu khi nền/tắt màn hình trên Android)
+      var ko=audioCtx.createOscillator(), kg=audioCtx.createGain();
+      ko.frequency.value=20; kg.gain.value=0.0006;
+      ko.connect(kg); kg.connect(audioCtx.destination);
+      ko.start(audioCtx.currentTime); ko.stop(base + 2.2);
+      schedNodes.push(ko);
+      // Chuỗi bíp báo hết giờ — đặt ở thời điểm tuyệt đối
+      var seq=[880,660,880,660,988];
+      seq.forEach(function(f,i){ schedTone(f, base + i*0.26, 0.2); });
     }catch(e){}
+  }
+  function clearScheduled(){
+    schedNodes.forEach(function(o){ try{ o.stop(); }catch(e){} });
+    schedNodes = [];
   }
   Array.prototype.forEach.call(timerEl.querySelectorAll(".tbtn"), function(b){
     b.addEventListener("click", function(){ startTimer(+b.getAttribute("data-sec")); });
