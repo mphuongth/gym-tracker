@@ -391,8 +391,10 @@
   }
   function setHasData(v){
     if(typeof v === "string") return v !== "";
-    return Array.isArray(v) && v.some(function(x){ return (x.kg&&x.kg!=="")||(x.reps&&x.reps!==""); });
+    return Array.isArray(v) && v.some(function(x){ return (x.kg&&x.kg!=="")||(x.reps&&x.reps!=="")||(x.sec&&x.sec!==""); });
   }
+  // Bài giữ theo thời gian (Plank…) — detail có dạng "…30–45s"
+  function isHold(detail){ return /\d\s*s(?![a-zA-Zà-ỹ])/i.test(detail); }
   // Lần ghi gần nhất cho cùng bài & cùng loại buổi (A/B) — dùng để nhắc tăng tiến
   function lastSets(n, id){
     var type = meta(n).type;
@@ -408,6 +410,7 @@
   }
   function fmtSets(sets){
     var parts = sets.map(function(s){
+      if(s.sec!=null && s.sec!=="") return s.sec+"s";
       var kg = (s.kg!=null && s.kg!=="") ? s.kg : null;
       var reps = (s.reps!=null && s.reps!=="") ? s.reps : null;
       if(kg && reps) return kg+"kg×"+reps;
@@ -487,16 +490,25 @@
         hint.innerHTML = 'Lần trước (T'+prev.week+'): <b>'+fmtSets(prev.sets)+'</b>';
         wrap.appendChild(hint);
       }
+      var hold = isHold(it.ex.d);
       sets.forEach(function(st, i){
         var r = document.createElement("div");
         r.className = "set-row";
-        r.innerHTML =
-          '<span class="slabel">Set '+(i+1)+'</span>'+
-          '<div class="mini"><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="–" value="'+(st.kg||"")+'"><span class="u">kg</span></div>'+
-          '<div class="mini"><input type="number" inputmode="numeric" min="0" placeholder="–" value="'+(st.reps||"")+'"><span class="u">reps</span></div>';
-        var ins = r.querySelectorAll("input");
-        ins[0].addEventListener("input", function(){ st.kg = ins[0].value; save(); });
-        ins[1].addEventListener("input", function(){ st.reps = ins[1].value; save(); });
+        if(hold){
+          r.innerHTML =
+            '<span class="slabel">Set '+(i+1)+'</span>'+
+            '<div class="mini"><input type="number" inputmode="numeric" min="0" placeholder="–" value="'+(st.sec||"")+'"><span class="u">giây</span></div>';
+          var inh = r.querySelector("input");
+          inh.addEventListener("input", function(){ st.sec = inh.value; save(); });
+        } else {
+          r.innerHTML =
+            '<span class="slabel">Set '+(i+1)+'</span>'+
+            '<div class="mini"><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="–" value="'+(st.kg||"")+'"><span class="u">kg</span></div>'+
+            '<div class="mini"><input type="number" inputmode="numeric" min="0" placeholder="–" value="'+(st.reps||"")+'"><span class="u">reps</span></div>';
+          var ins = r.querySelectorAll("input");
+          ins[0].addEventListener("input", function(){ st.kg = ins[0].value; save(); });
+          ins[1].addEventListener("input", function(){ st.reps = ins[1].value; save(); });
+        }
         wrap.appendChild(r);
       });
       div.appendChild(wrap);
