@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="description" content="Ứng dụng theo dõi lịch tập gym giảm mỡ — checklist A/B, ghi mức tạ, timer nghỉ.">
+<meta name="theme-color" content="#F1F3F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1216" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Gym Plan">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23FB4E1F'/%3E%3Ctext x='90' y='128' font-size='104' text-anchor='middle'%3E%F0%9F%94%A5%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%A5%3C/text%3E%3C/svg%3E">
+<title>Lịch Tập Gym — Giảm Mỡ</title>
+<style>
+  :root{
+    --bg:#F1F3F6; --surface:#FFFFFF; --surface-2:#F7F8FA;
+    --ink:#1A1D23; --muted:#69707B; --line:#E5E8ED;
+    --accent:#FB4E1F; --accent-ink:#C93A12; --accent-soft:rgba(251,78,31,.10);
+    --success:#12A150; --success-soft:rgba(18,161,80,.12);
+    --shadow:0 1px 2px rgba(20,25,35,.05),0 8px 24px -12px rgba(20,25,35,.18);
+    --r:16px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0F1216; --surface:#191D23; --surface-2:#20252D;
+      --ink:#F0F2F5; --muted:#98A0AB; --line:#2A313A;
+      --accent:#FF6A40; --accent-ink:#FF8563; --accent-soft:rgba(255,106,64,.15);
+      --success:#2ED47A; --success-soft:rgba(46,212,122,.15);
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F1F3F6; --surface:#FFFFFF; --surface-2:#F7F8FA;
+    --ink:#1A1D23; --muted:#69707B; --line:#E5E8ED;
+    --accent:#FB4E1F; --accent-ink:#C93A12; --accent-soft:rgba(251,78,31,.10);
+    --success:#12A150; --success-soft:rgba(18,161,80,.12);
+    --shadow:0 1px 2px rgba(20,25,35,.05),0 8px 24px -12px rgba(20,25,35,.18);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1216; --surface:#191D23; --surface-2:#20252D;
+    --ink:#F0F2F5; --muted:#98A0AB; --line:#2A313A;
+    --accent:#FF6A40; --accent-ink:#FF8563; --accent-soft:rgba(255,106,64,.15);
+    --success:#2ED47A; --success-soft:rgba(46,212,122,.15);
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.45;
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:0 16px 132px;min-height:100vh}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* Header */
+  header{padding:22px 2px 14px}
+  .eyebrow{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  }
+  .icon-btn{
+    border:1px solid var(--line);background:var(--surface);color:var(--muted);
+    width:34px;height:34px;border-radius:10px;display:grid;place-items:center;cursor:pointer;
+    font-size:15px;line-height:1;transition:.15s;
+  }
+  .icon-btn:hover{color:var(--ink);border-color:var(--muted)}
+  .title-row{display:flex;align-items:center;gap:12px;margin-top:12px}
+  h1{margin:0;font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .badge{
+    font-size:13px;font-weight:800;letter-spacing:.02em;padding:5px 11px;border-radius:999px;
+    background:var(--accent-soft);color:var(--accent-ink);border:1px solid transparent;
+  }
+  .subtitle{margin-top:8px;color:var(--muted);font-size:14px;font-weight:500}
+
+  /* Week strip */
+  .week-strip{display:flex;gap:8px;margin-top:16px}
+  .day-chip{
+    flex:1;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:9px 6px;text-align:center;box-shadow:var(--shadow);position:relative;
+  }
+  .day-chip .dlabel{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .day-chip .dtype{font-size:19px;font-weight:800;letter-spacing:-.02em;margin-top:1px}
+  .day-chip.done{border-color:var(--success);background:var(--success-soft)}
+  .day-chip.done .dtype{color:var(--success)}
+  .day-chip.current{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow)}
+  .day-chip.current .dtype{color:var(--accent-ink)}
+  .day-chip .mark{position:absolute;top:5px;right:7px;font-size:11px;color:var(--success);font-weight:800}
+
+  /* Progress */
+  .progress-card{
+    margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+    padding:16px;box-shadow:var(--shadow);
+  }
+  .progress-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  .progress-top .lbl{font-size:13px;font-weight:600;color:var(--muted)}
+  .progress-top .cnt{font-size:15px;font-weight:800}
+  .progress-top .cnt b{color:var(--accent-ink)}
+  .bar{height:9px;border-radius:999px;background:var(--surface-2);overflow:hidden;border:1px solid var(--line)}
+  .bar > i{display:block;height:100%;width:0;border-radius:999px;
+    background:linear-gradient(90deg,var(--accent),#FF8A5B);transition:width .35s cubic-bezier(.4,0,.2,1)}
+
+  /* Sections */
+  .section{margin-top:22px}
+  .sec-head{display:flex;align-items:center;gap:9px;margin:0 2px 10px}
+  .sec-head .tag{
+    font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  }
+  .sec-head .rule{flex:1;height:1px;background:var(--line)}
+  .sec-head .scount{font-size:11px;color:var(--muted);font-weight:700}
+
+  .list{display:flex;flex-direction:column;gap:8px}
+  .item{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;transition:border-color .15s;
+  }
+  .item.checked{border-color:var(--success)}
+  .item-row{
+    display:flex;align-items:flex-start;gap:13px;width:100%;text-align:left;
+    background:none;border:none;color:inherit;font:inherit;padding:14px;cursor:pointer;
+  }
+  .check{
+    flex-shrink:0;width:26px;height:26px;border-radius:8px;border:2px solid var(--line);
+    background:var(--surface-2);display:grid;place-items:center;margin-top:1px;transition:.18s;
+  }
+  .check svg{width:15px;height:15px;stroke:#fff;stroke-width:3.2;fill:none;
+    stroke-linecap:round;stroke-linejoin:round;
+    stroke-dasharray:20;stroke-dashoffset:20;transition:stroke-dashoffset .22s ease}
+  .item.checked .check{background:var(--success);border-color:var(--success)}
+  .item.checked .check svg{stroke-dashoffset:0}
+  .item-main{flex:1;min-width:0}
+  .ex-name{font-size:15.5px;font-weight:700;letter-spacing:-.01em;line-height:1.3}
+  .item.checked .ex-name{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+  .ex-detail{font-size:13px;color:var(--muted);font-weight:600;margin-top:2px}
+  .ex-meta{margin-top:9px;display:flex;flex-direction:column;gap:5px}
+  .meta-line{font-size:12.5px;color:var(--muted);display:flex;gap:7px;align-items:flex-start;line-height:1.4}
+  .meta-line .k{font-weight:800;color:var(--accent-ink);flex-shrink:0;font-size:10px;
+    letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+
+  /* Weight log row */
+  .log-row{
+    display:flex;align-items:center;gap:8px;padding:11px 14px 13px 53px;
+    border-top:1px dashed var(--line);
+  }
+  .kg-field{display:flex;align-items:center;gap:6px;background:var(--surface-2);
+    border:1px solid var(--line);border-radius:10px;padding:5px 6px 5px 11px}
+  .kg-field label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .kg-field input{
+    width:52px;border:none;background:none;color:var(--ink);font:inherit;font-size:15px;font-weight:800;
+    text-align:right;padding:2px 0;outline:none;font-variant-numeric:tabular-nums;
+  }
+  .kg-field input::-webkit-outer-spin-button,.kg-field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .kg-field .unit{font-size:12px;font-weight:700;color:var(--muted);padding-right:9px}
+  .last-hint{font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.3}
+  .last-hint b{color:var(--accent-ink)}
+  .last-hint .up{color:var(--success)}
+
+  /* Safety note */
+  .safety{
+    margin-top:22px;background:var(--accent-soft);border:1px solid transparent;border-radius:14px;padding:14px 16px;
+  }
+  .safety b{color:var(--accent-ink)}
+  .safety p{margin:0;font-size:12.5px;color:var(--ink);line-height:1.5;opacity:.85}
+  .safety .st{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);display:block;margin-bottom:5px}
+
+  /* Sticky footer */
+  .foot{
+    position:fixed;left:0;right:0;bottom:0;padding:10px 16px calc(12px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top,var(--bg) 55%,transparent);
+  }
+  .foot-inner{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
+
+  /* Rest timer */
+  .timer{
+    display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);
+    border-radius:13px;padding:7px 8px 7px 13px;box-shadow:var(--shadow);
+  }
+  .timer .tlabel{font-size:12px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .timer .presets{display:flex;gap:6px;margin-left:auto}
+  .tbtn{
+    border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px;
+    font-weight:800;padding:7px 13px;border-radius:9px;cursor:pointer;transition:.15s;font-variant-numeric:tabular-nums;
+  }
+  .tbtn:hover{border-color:var(--accent);color:var(--accent-ink)}
+  .timer.running{background:var(--accent-soft);border-color:var(--accent)}
+  .timer .running-view{display:none;align-items:center;gap:12px;width:100%}
+  .timer.running .running-view{display:flex}
+  .timer.running .idle-view{display:none}
+  .timer .idle-view{display:flex;align-items:center;gap:8px;width:100%}
+  .count{font-size:22px;font-weight:800;color:var(--accent-ink);font-variant-numeric:tabular-nums;letter-spacing:-.02em;min-width:52px}
+  .tprog{flex:1;height:7px;border-radius:999px;background:var(--surface);overflow:hidden;border:1px solid var(--line)}
+  .tprog > i{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width 1s linear}
+  .tcancel{border:none;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:800;cursor:pointer;padding:6px 8px}
+  .tcancel:hover{color:var(--ink)}
+  .finish{
+    width:100%;border:none;border-radius:14px;padding:16px;font:inherit;font-size:16px;font-weight:800;
+    letter-spacing:-.01em;cursor:pointer;transition:.18s;color:#fff;background:var(--accent);
+    box-shadow:0 8px 22px -8px var(--accent);display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .finish:disabled{background:var(--surface-2);color:var(--muted);box-shadow:none;cursor:default;border:1px solid var(--line)}
+  .finish.ready{animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 8px 22px -8px var(--accent)}50%{box-shadow:0 8px 30px -6px var(--accent)}}
+
+  /* Overlay */
+  .overlay{
+    position:fixed;inset:0;background:rgba(10,12,16,.55);backdrop-filter:blur(4px);
+    display:none;place-items:center;padding:24px;z-index:20;
+  }
+  .overlay.show{display:grid;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .card-pop{
+    background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:30px 26px;
+    max-width:360px;width:100%;text-align:center;box-shadow:var(--shadow);animation:pop .3s cubic-bezier(.34,1.4,.6,1)}
+  @keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+  .card-pop .big{font-size:52px;line-height:1;margin-bottom:6px}
+  .card-pop h2{margin:8px 0 4px;font-size:24px;font-weight:800;letter-spacing:-.02em}
+  .card-pop p{margin:0 0 20px;color:var(--muted);font-size:14.5px}
+  .card-pop .go{width:100%;border:none;border-radius:13px;padding:14px;font:inherit;font-size:15px;
+    font-weight:800;color:#fff;background:var(--accent);cursor:pointer;box-shadow:0 8px 22px -8px var(--accent)}
+  .card-pop .go.alt{background:transparent;color:var(--muted);box-shadow:none;margin-top:4px}
+
+  /* Bottom-sheet menu */
+  .sheet-wrap{position:fixed;inset:0;background:rgba(10,12,16,.55);backdrop-filter:blur(4px);
+    display:none;align-items:flex-end;z-index:30}
+  .sheet-wrap.show{display:flex;animation:fade .2s ease}
+  .sheet{background:var(--surface);border-top-left-radius:22px;border-top-right-radius:22px;
+    width:100%;max-width:520px;margin:0 auto;padding:10px 16px calc(20px + env(safe-area-inset-bottom));
+    box-shadow:var(--shadow);animation:slideup .28s cubic-bezier(.34,1.2,.6,1)}
+  @keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .sheet .grip{width:38px;height:4px;border-radius:999px;background:var(--line);margin:6px auto 12px}
+  .sheet h3{margin:0 4px 10px;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .sheet-btn{display:flex;align-items:center;gap:13px;width:100%;text-align:left;border:none;
+    background:var(--surface-2);border:1px solid var(--line);border-radius:13px;padding:15px 15px;
+    font:inherit;font-size:15.5px;font-weight:700;color:var(--ink);cursor:pointer;margin-bottom:8px;transition:.15s}
+  .sheet-btn:hover{border-color:var(--muted)}
+  .sheet-btn .em{font-size:19px;width:24px;text-align:center;flex-shrink:0}
+  .sheet-btn small{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-top:1px}
+  .sheet-btn.danger{color:#D33A2C}
+  .sheet-btn.danger .em{filter:none}
+  :root[data-theme="dark"] .sheet-btn.danger,@media (prefers-color-scheme:dark){.sheet-btn.danger{color:#FF6F5E}}
+
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">
+      <span>Kế hoạch giảm mỡ · Full Body A/B</span>
+      <button class="icon-btn" id="menuBtn" title="Tùy chọn" aria-label="Tùy chọn">⋯</button>
+    </div>
+    <div class="title-row">
+      <h1 id="weekTitle">Tuần 1</h1>
+      <span class="badge" id="dayBadge">Buổi A</span>
+    </div>
+    <div class="subtitle" id="sessionSub">Buổi 1 / 3 trong tuần</div>
+
+    <div class="week-strip" id="weekStrip"></div>
+
+    <div class="progress-card">
+      <div class="progress-top">
+        <span class="lbl">Tiến độ buổi tập</span>
+        <span class="cnt tnum"><b id="doneCount">0</b> / <span id="totalCount">0</span></span>
+      </div>
+      <div class="bar"><i id="barFill"></i></div>
+    </div>
+  </header>
+
+  <main id="sections"></main>
+
+  <div class="safety">
+    <span class="st">⚠︎ An toàn cho lưng</span>
+    <p><b>Dừng ngay</b> nếu đau nhói, đau lan xuống chân, tê hoặc yếu chân. Giữ lưng trung tính ở mọi bài (Squat, Hip Thrust, Leg Press). Nghỉ giữa hiệp 60–90s. Tránh chạy bộ nhiều — ưu tiên bike, elliptical, rowing, đi bộ dốc.</p>
+  </div>
+</div>
+
+<div class="foot">
+  <div class="foot-inner">
+    <div class="timer" id="timer">
+      <div class="idle-view">
+        <span class="tlabel">⏱ Nghỉ giữa hiệp</span>
+        <div class="presets">
+          <button class="tbtn" data-sec="60">60s</button>
+          <button class="tbtn" data-sec="90">90s</button>
+        </div>
+      </div>
+      <div class="running-view">
+        <span class="count" id="tCount">1:30</span>
+        <div class="tprog"><i id="tProg"></i></div>
+        <button class="tcancel" id="tCancel">Dừng</button>
+      </div>
+    </div>
+    <button class="finish" id="finishBtn" disabled>Hoàn thành các bài để kết thúc buổi</button>
+  </div>
+</div>
+
+<div class="sheet-wrap" id="menuSheet">
+  <div class="sheet">
+    <div class="grip"></div>
+    <h3>Tùy chọn</h3>
+    <button class="sheet-btn" id="mRedo"><span class="em">↺</span><span>Làm lại buổi hiện tại<small>Bỏ hết dấu tick (giữ mức tạ đã ghi)</small></span></button>
+    <button class="sheet-btn" id="mBack"><span class="em">←</span><span>Quay lại buổi trước<small id="mBackSub">Về buổi liền trước</small></span></button>
+    <button class="sheet-btn danger" id="mReset"><span class="em">🗑</span><span id="mResetLabel">Xóa toàn bộ tiến độ<small>Về Tuần 1 · Buổi A, xóa cả mức tạ</small></span></button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="card-pop">
+    <div class="big" id="popEmoji">🎉</div>
+    <h2 id="popTitle"></h2>
+    <p id="popText"></p>
+    <button class="go" id="popGo"></button>
+    <button class="go alt" id="popClose">Đóng</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---- Dữ liệu bài tập (từ file Plan_Tap_Gym_Giam_Mo.md) ----
+  var WARMUP = [
+    {n:"Bike / Elliptical nhẹ", d:"3–5 phút"},
+    {n:"Xoay khớp vai · hông · gối", d:"10 vòng × 2 chiều mỗi khớp"},
+    {n:"Bird Dog", d:"2 × 8 mỗi bên", note:"Kích hoạt core, chuẩn bị cột sống"},
+    {n:"Cat-Cow nhẹ (không tạ)", d:"10 lần", note:"Làm ấm cột sống trước bài chính"}
+  ];
+  var A = [
+    {n:"Goblet Squat / Leg Press", d:"3 × 10–12", note:"Giữ lưng thẳng, không gập quá sâu"},
+    {n:"Chest Press machine", d:"3 × 10–12", alt:"Dumbbell Chest Press (khi quen tạ tự do)", note:"Chỉnh ghế để vai không bị đẩy lên"},
+    {n:"Lat Pulldown", d:"3 × 10–12", alt:"Seated Cable Row"},
+    {n:"Dumbbell Shoulder Press", d:"3 × 10–12", alt:"Machine Shoulder Press"},
+    {n:"Plank", d:"3 × 30–45s", alt:"Bird Dog", note:"Không cong lưng dưới, giữ trung tính"},
+    {n:"Finisher · Đi bộ leo dốc", d:"15–20 phút · incline 8–12% · 4–5 km/h", note:"Lưng thẳng, không khom người về trước"}
+  ];
+  var B = [
+    {n:"Hip Thrust (máy / tạ đòn)", d:"3 × 10–12", alt:"Glute Bridge (nếu chưa quen tạ)", note:"An toàn hơn Deadlift cho lưng"},
+    {n:"Incline Dumbbell Press", d:"3 × 10–12", alt:"Machine Incline Press"},
+    {n:"Seated Row", d:"3 × 10–12", alt:"Lat Pulldown"},
+    {n:"Leg Press (chân rộng)", d:"3 × 10–12", alt:"Bulgarian Split Squat (nhẹ)"},
+    {n:"Side Plank", d:"3 × 20–30s mỗi bên", alt:"Cable Crunch nhẹ", note:"Ưu tiên isometric hơn gập lặp"},
+    {n:"Finisher · Rowing / Elliptical", d:"15–20 phút · 1' nhanh / 2' chậm × 4–5", note:"Có thể đổi qua đi bộ leo dốc"}
+  ];
+  var COOLDOWN = [
+    {n:"Đi bộ chậm trên máy", d:"2–3 phút", note:"Giảm nhịp tim từ từ"},
+    {n:"Child's Pose", d:"30–45s", note:"Giảm áp lực cột sống"},
+    {n:"Giãn gân kheo (nằm ngửa, kéo dây)", d:"30s mỗi bên", note:"Tránh đứng cúi người chạm chân"},
+    {n:"Giãn cơ hông (hip flexor)", d:"30s mỗi bên"},
+    {n:"Hít thở sâu, thư giãn toàn thân", d:"5–10 nhịp"}
+  ];
+
+  // ---- Trạng thái ----
+  var KEY = "gymplan_v1";
+  var state = load();
+
+  function load(){
+    try{ var s = JSON.parse(localStorage.getItem(KEY));
+      if(s && typeof s.current==="number"){ if(!s.checks) s.checks={}; if(!s.logs) s.logs={}; return s; }
+    }catch(e){}
+    return { current:0, checks:{}, logs:{} };
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+  function meta(n){
+    return { type: (n%2===0)?"A":"B", week: Math.floor(n/3)+1, pos: n%3 };
+  }
+  function buildItems(n){
+    var m = meta(n);
+    var main = m.type==="A" ? A : B;
+    var items = [];
+    WARMUP.forEach(function(x,i){ items.push(mk("w",i,x)); });
+    main.forEach(function(x,i){ items.push(mk("m",i,x)); });
+    COOLDOWN.forEach(function(x,i){ items.push(mk("c",i,x)); });
+    return items;
+    function mk(g,i,x){ return {id:g+i, group:g, ex:x}; }
+  }
+  function checksFor(n){ if(!state.checks[n]) state.checks[n]={}; return state.checks[n]; }
+  function logsFor(n){ if(!state.logs[n]) state.logs[n]={}; return state.logs[n]; }
+
+  // Tìm mức tạ đã ghi gần nhất cho cùng bài & cùng loại buổi (A/B) — dùng để nhắc tăng tiến
+  function lastWeight(n, itemId){
+    var type = meta(n).type;
+    for(var s=n-1; s>=0; s--){
+      if(meta(s).type===type && state.logs[s] && state.logs[s][itemId]!=null && state.logs[s][itemId]!==""){
+        return { kg: state.logs[s][itemId], week: meta(s).week };
+      }
+    }
+    return null;
+  }
+
+  // ---- Render ----
+  var elSections = document.getElementById("sections");
+  var TOTAL = 15;
+
+  function render(){
+    var n = state.current, m = meta(n);
+    document.getElementById("weekTitle").textContent = "Tuần " + m.week;
+    document.getElementById("dayBadge").textContent = "Buổi " + m.type;
+    document.getElementById("sessionSub").textContent = "Buổi " + (m.pos+1) + " / 3 trong tuần";
+    renderWeekStrip(m);
+
+    var items = buildItems(n);
+    var chk = checksFor(n);
+    var groups = [
+      {tag:"Khởi động", g:"w"},
+      {tag:"Bài chính · Buổi "+m.type, g:"m"},
+      {tag:"Thư giãn", g:"c"}
+    ];
+    elSections.innerHTML = "";
+    groups.forEach(function(grp){
+      var list = items.filter(function(it){return it.group===grp.g;});
+      var doneN = list.filter(function(it){return chk[it.id];}).length;
+      var sec = document.createElement("section");
+      sec.className = "section";
+      var head = document.createElement("div");
+      head.className = "sec-head";
+      head.innerHTML = '<span class="tag">'+grp.tag+'</span><span class="rule"></span>'+
+        '<span class="scount tnum">'+doneN+'/'+list.length+'</span>';
+      sec.appendChild(head);
+      var ul = document.createElement("div");
+      ul.className = "list";
+      list.forEach(function(it){ ul.appendChild(renderItem(it, chk, grp.g)); });
+      sec.appendChild(ul);
+      elSections.appendChild(sec);
+    });
+    updateProgress();
+  }
+
+  function renderItem(it, chk, g){
+    var on = !!chk[it.id];
+    var div = document.createElement("div");
+    div.className = "item" + (on?" checked":"");
+    var meta = "";
+    if(it.ex.alt) meta += '<div class="meta-line"><span class="k">Thay thế</span><span>'+it.ex.alt+'</span></div>';
+    if(it.ex.note) meta += '<div class="meta-line"><span class="k">Lưu ý</span><span>'+it.ex.note+'</span></div>';
+    div.innerHTML =
+      '<button class="item-row" aria-pressed="'+on+'">'+
+        '<span class="check"><svg viewBox="0 0 18 18"><path d="M3.5 9.5l3.5 3.5 7.5-8"/></svg></span>'+
+        '<span class="item-main">'+
+          '<span class="ex-name">'+it.ex.n+'</span>'+
+          '<span class="ex-detail tnum">'+it.ex.d+'</span>'+
+          (meta?'<span class="ex-meta">'+meta+'</span>':'')+
+        '</span>'+
+      '</button>';
+    div.querySelector(".item-row").addEventListener("click", function(){ toggle(it.id); });
+
+    // Ghi mức tạ — chỉ cho bài chính có tạ (bỏ finisher cardio m5)
+    if(g==="m" && it.id!=="m5"){
+      var lg = logsFor(state.current);
+      var cur = (lg[it.id]!=null)?lg[it.id]:"";
+      var prev = lastWeight(state.current, it.id);
+      var hint = "Chưa có dữ liệu buổi trước";
+      if(prev){
+        var arrow = "";
+        if(cur!=="" && !isNaN(+cur) && !isNaN(+prev.kg)){
+          if(+cur > +prev.kg) arrow = ' <span class="up">↑ tăng</span>';
+          else if(+cur < +prev.kg) arrow = ' ↓';
+        }
+        hint = 'Lần trước (T'+prev.week+'): <b>'+prev.kg+' kg</b>'+arrow;
+      }
+      var row = document.createElement("div");
+      row.className = "log-row";
+      row.innerHTML =
+        '<div class="kg-field"><label>Tạ</label>'+
+          '<input type="number" inputmode="decimal" step="0.5" min="0" placeholder="—" value="'+cur+'">'+
+          '<span class="unit">kg</span></div>'+
+        '<div class="last-hint">'+hint+'</div>';
+      var input = row.querySelector("input");
+      input.addEventListener("input", function(){
+        var v = input.value;
+        if(v==="") delete lg[it.id]; else lg[it.id]=v;
+        save();
+        var lh = row.querySelector(".last-hint");
+        if(prev){
+          var a="";
+          if(v!=="" && !isNaN(+v) && !isNaN(+prev.kg)){ if(+v>+prev.kg) a=' <span class="up">↑ tăng</span>'; else if(+v<+prev.kg) a=' ↓'; }
+          lh.innerHTML = 'Lần trước (T'+prev.week+'): <b>'+prev.kg+' kg</b>'+a;
+        }
+      });
+      div.appendChild(row);
+    }
+    return div;
+  }
+
+  function renderWeekStrip(m){
+    var strip = document.getElementById("weekStrip");
+    strip.innerHTML = "";
+    var base = (m.week-1)*3;
+    var labels = ["Thứ 2","Thứ 4","Thứ 6"];
+    for(var i=0;i<3;i++){
+      var idx = base+i;
+      var t = (idx%2===0)?"A":"B";
+      var isDone = idx < state.current;
+      var isCur = idx === state.current;
+      var chip = document.createElement("div");
+      chip.className = "day-chip" + (isDone?" done":"") + (isCur?" current":"");
+      chip.innerHTML = '<div class="dlabel">'+labels[i]+'</div><div class="dtype">'+t+'</div>'+
+        (isDone?'<div class="mark">✓</div>':'');
+      strip.appendChild(chip);
+    }
+  }
+
+  function updateProgress(){
+    var chk = checksFor(state.current);
+    var done = Object.keys(chk).filter(function(k){return chk[k];}).length;
+    document.getElementById("doneCount").textContent = done;
+    document.getElementById("totalCount").textContent = TOTAL;
+    document.getElementById("barFill").style.width = (done/TOTAL*100)+"%";
+    var btn = document.getElementById("finishBtn");
+    if(done>=TOTAL){
+      btn.disabled = false; btn.classList.add("ready");
+      btn.textContent = "Kết thúc buổi · chuyển buổi tiếp theo →";
+    } else {
+      btn.disabled = true; btn.classList.remove("ready");
+      btn.textContent = "Còn " + (TOTAL-done) + " bài · hoàn thành để kết thúc";
+    }
+  }
+
+  function toggle(id){
+    var chk = checksFor(state.current);
+    chk[id] = !chk[id];
+    save();
+    render();
+  }
+
+  // ---- Kết thúc buổi ----
+  document.getElementById("finishBtn").addEventListener("click", function(){
+    var m = meta(state.current);
+    var weekDone = (m.pos === 2); // buổi thứ 3 trong tuần
+    state.current += 1;
+    save();
+    if(weekDone) showPop("week", m.week);
+    else showPop("day", m.type);
+    render();
+  });
+
+  // ---- Overlay ----
+  var overlay = document.getElementById("overlay");
+  function showPop(kind, val){
+    var em = document.getElementById("popEmoji");
+    var ti = document.getElementById("popTitle");
+    var tx = document.getElementById("popText");
+    var go = document.getElementById("popGo");
+    var nm = meta(state.current);
+    if(kind==="week"){
+      em.textContent = "🏆";
+      ti.textContent = "Tuần " + val + " hoàn thành!";
+      tx.textContent = "Đủ 3 buổi tuần này. Bắt đầu Tuần " + nm.week + " với Buổi " + nm.type + ".";
+    } else {
+      em.textContent = "🔥";
+      ti.textContent = "Xong Buổi " + val + "!";
+      tx.textContent = "Buổi tiếp theo: Buổi " + nm.type + " (buổi " + (nm.pos+1) + "/3 tuần " + nm.week + ").";
+    }
+    go.textContent = "Tiếp tục";
+    overlay.classList.add("show");
+  }
+  document.getElementById("popGo").addEventListener("click", function(){ overlay.classList.remove("show"); });
+  document.getElementById("popClose").addEventListener("click", function(){ overlay.classList.remove("show"); });
+  overlay.addEventListener("click", function(e){ if(e.target===overlay) overlay.classList.remove("show"); });
+
+  // ---- Menu (bottom sheet) ----
+  var menuSheet = document.getElementById("menuSheet");
+  var resetArmed = false;
+  function openMenu(){
+    resetArmed = false;
+    resetResetBtn();
+    document.getElementById("mBack").style.opacity = state.current>0 ? "1" : ".4";
+    document.getElementById("mBackSub").textContent = state.current>0 ? "Về buổi liền trước" : "Đang ở buổi đầu tiên";
+    menuSheet.classList.add("show");
+  }
+  function closeMenu(){ menuSheet.classList.remove("show"); }
+  function resetResetBtn(){
+    document.getElementById("mReset").classList.toggle("armed", false);
+    document.getElementById("mResetLabel").innerHTML = 'Xóa toàn bộ tiến độ<small>Về Tuần 1 · Buổi A, xóa cả mức tạ</small>';
+  }
+  document.getElementById("menuBtn").addEventListener("click", openMenu);
+  menuSheet.addEventListener("click", function(e){ if(e.target===menuSheet) closeMenu(); });
+
+  document.getElementById("mRedo").addEventListener("click", function(){
+    state.checks[state.current]={}; save(); render(); closeMenu();
+  });
+  document.getElementById("mBack").addEventListener("click", function(){
+    if(state.current>0){ state.current-=1; save(); render(); }
+    closeMenu();
+  });
+  document.getElementById("mReset").addEventListener("click", function(){
+    if(!resetArmed){
+      resetArmed = true;
+      document.getElementById("mResetLabel").innerHTML = '⚠︎ Chạm lần nữa để xác nhận xóa<small>Không thể hoàn tác</small>';
+      return;
+    }
+    state={current:0,checks:{},logs:{}}; save(); render(); closeMenu();
+  });
+
+  // ---- Timer nghỉ giữa hiệp ----
+  var timerEl = document.getElementById("timer");
+  var tCount = document.getElementById("tCount");
+  var tProg = document.getElementById("tProg");
+  var tId = null, tEnd = 0, tTotal = 0;
+
+  function fmt(s){ var m=Math.floor(s/60); var ss=s%60; return m+":"+(ss<10?"0":"")+ss; }
+  function startTimer(sec){
+    stopTimer(true);
+    tTotal = sec; tEnd = Date.now() + sec*1000;
+    timerEl.classList.add("running");
+    tick();
+    tId = setInterval(tick, 250);
+  }
+  function tick(){
+    var left = Math.max(0, Math.round((tEnd - Date.now())/1000));
+    tCount.textContent = fmt(left);
+    tProg.style.width = (left/tTotal*100)+"%";
+    if(left<=0){ done(); }
+  }
+  function done(){
+    stopTimer(false);
+    beep(); if(navigator.vibrate) navigator.vibrate([200,80,200]);
+  }
+  function stopTimer(silent){
+    if(tId){ clearInterval(tId); tId=null; }
+    timerEl.classList.remove("running");
+  }
+  function beep(){
+    try{
+      var AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
+      var ctx = new AC(); var t = ctx.currentTime;
+      [880,660].forEach(function(f,i){
+        var o=ctx.createOscillator(), g=ctx.createGain();
+        o.type="sine"; o.frequency.value=f;
+        o.connect(g); g.connect(ctx.destination);
+        var st=t+i*0.22;
+        g.gain.setValueAtTime(0.0001,st);
+        g.gain.exponentialRampToValueAtTime(0.35,st+0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001,st+0.2);
+        o.start(st); o.stop(st+0.22);
+      });
+      setTimeout(function(){ try{ctx.close();}catch(e){} }, 800);
+    }catch(e){}
+  }
+  Array.prototype.forEach.call(timerEl.querySelectorAll(".tbtn"), function(b){
+    b.addEventListener("click", function(){ startTimer(+b.getAttribute("data-sec")); });
+  });
+  document.getElementById("tCancel").addEventListener("click", function(){ stopTimer(true); });
+
+  render();
+})();
+</script>
+</body>
+</html>
