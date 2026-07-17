@@ -139,23 +139,17 @@
   .meta-line .k{font-weight:800;color:var(--accent-ink);flex-shrink:0;font-size:10px;
     letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
 
-  /* Weight log row */
-  .log-row{
-    display:flex;align-items:center;gap:8px;padding:11px 14px 13px 53px;
-    border-top:1px dashed var(--line);
-  }
-  .kg-field{display:flex;align-items:center;gap:6px;background:var(--surface-2);
-    border:1px solid var(--line);border-radius:10px;padding:5px 6px 5px 11px}
-  .kg-field label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-  .kg-field input{
-    width:52px;border:none;background:none;color:var(--ink);font:inherit;font-size:15px;font-weight:800;
-    text-align:right;padding:2px 0;outline:none;font-variant-numeric:tabular-nums;
-  }
-  .kg-field input::-webkit-outer-spin-button,.kg-field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-  .kg-field .unit{font-size:12px;font-weight:700;color:var(--muted);padding-right:9px}
-  .last-hint{font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.3}
-  .last-hint b{color:var(--accent-ink)}
-  .last-hint .up{color:var(--success)}
+  /* Weight / reps log — từng set */
+  .sets{display:flex;flex-direction:column;gap:7px;padding:12px 14px 14px 53px;border-top:1px dashed var(--line)}
+  .last-hint{font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.4;margin-bottom:2px}
+  .last-hint b{color:var(--accent-ink);font-variant-numeric:tabular-nums}
+  .set-row{display:flex;align-items:center;gap:8px}
+  .slabel{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);width:40px;flex-shrink:0}
+  .mini{display:flex;align-items:center;gap:5px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:5px 9px}
+  .mini input{width:44px;border:none;background:none;color:var(--ink);font:inherit;font-size:14.5px;font-weight:800;
+    text-align:right;padding:1px 0;outline:none;font-variant-numeric:tabular-nums}
+  .mini input::-webkit-outer-spin-button,.mini input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .mini .u{font-size:11px;font-weight:700;color:var(--muted)}
 
   /* Safety note */
   .safety{
@@ -380,15 +374,43 @@
   function checksFor(n){ if(!state.checks[n]) state.checks[n]={}; return state.checks[n]; }
   function logsFor(n){ if(!state.logs[n]) state.logs[n]={}; return state.logs[n]; }
 
-  // Tìm mức tạ đã ghi gần nhất cho cùng bài & cùng loại buổi (A/B) — dùng để nhắc tăng tiến
-  function lastWeight(n, itemId){
+  // Lấy mảng set {kg,reps} cho 1 bài, tự tạo đủ số set & chuyển đổi dữ liệu cũ (chuỗi kg đơn)
+  function getSets(n, id, count){
+    var lg = logsFor(n);
+    var v = lg[id];
+    if(typeof v === "string") v = [{kg:v, reps:""}];
+    if(!Array.isArray(v)) v = [];
+    while(v.length < count) v.push({kg:"", reps:""});
+    lg[id] = v;
+    return v;
+  }
+  function setHasData(v){
+    if(typeof v === "string") return v !== "";
+    return Array.isArray(v) && v.some(function(x){ return (x.kg&&x.kg!=="")||(x.reps&&x.reps!==""); });
+  }
+  // Lần ghi gần nhất cho cùng bài & cùng loại buổi (A/B) — dùng để nhắc tăng tiến
+  function lastSets(n, id){
     var type = meta(n).type;
     for(var s=n-1; s>=0; s--){
-      if(meta(s).type===type && state.logs[s] && state.logs[s][itemId]!=null && state.logs[s][itemId]!==""){
-        return { kg: state.logs[s][itemId], week: meta(s).week };
+      var lg = state.logs[s];
+      if(meta(s).type===type && lg && lg[id]!=null && setHasData(lg[id])){
+        var v = lg[id];
+        if(typeof v === "string") v = [{kg:v, reps:""}];
+        return { week: meta(s).week, sets: v };
       }
     }
     return null;
+  }
+  function fmtSets(sets){
+    var parts = sets.map(function(s){
+      var kg = (s.kg!=null && s.kg!=="") ? s.kg : null;
+      var reps = (s.reps!=null && s.reps!=="") ? s.reps : null;
+      if(kg && reps) return kg+"kg×"+reps;
+      if(kg) return kg+"kg";
+      if(reps) return "×"+reps;
+      return null;
+    }).filter(Boolean);
+    return parts.length ? parts.join("  ·  ") : "—";
   }
 
   // ---- Render ----
@@ -447,40 +469,32 @@
       '</button>';
     div.querySelector(".item-row").addEventListener("click", function(){ toggle(it.id); });
 
-    // Ghi mức tạ — chỉ cho bài chính có tạ (bỏ finisher cardio m5)
+    // Ghi tạ + reps từng set — chỉ cho bài chính có tạ (bỏ finisher cardio m5)
     if(g==="m" && it.id!=="m5"){
-      var lg = logsFor(state.current);
-      var cur = (lg[it.id]!=null)?lg[it.id]:"";
-      var prev = lastWeight(state.current, it.id);
-      var hint = "Chưa có dữ liệu buổi trước";
+      var setCount = parseInt((it.ex.d.match(/^\s*(\d+)/)||[])[1], 10) || 3;
+      var sets = getSets(state.current, it.id, setCount);
+      var prev = lastSets(state.current, it.id);
+      var wrap = document.createElement("div");
+      wrap.className = "sets";
       if(prev){
-        var arrow = "";
-        if(cur!=="" && !isNaN(+cur) && !isNaN(+prev.kg)){
-          if(+cur > +prev.kg) arrow = ' <span class="up">↑ tăng</span>';
-          else if(+cur < +prev.kg) arrow = ' ↓';
-        }
-        hint = 'Lần trước (T'+prev.week+'): <b>'+prev.kg+' kg</b>'+arrow;
+        var hint = document.createElement("div");
+        hint.className = "last-hint";
+        hint.innerHTML = 'Lần trước (T'+prev.week+'): <b>'+fmtSets(prev.sets)+'</b>';
+        wrap.appendChild(hint);
       }
-      var row = document.createElement("div");
-      row.className = "log-row";
-      row.innerHTML =
-        '<div class="kg-field"><label>Tạ</label>'+
-          '<input type="number" inputmode="decimal" step="0.5" min="0" placeholder="—" value="'+cur+'">'+
-          '<span class="unit">kg</span></div>'+
-        '<div class="last-hint">'+hint+'</div>';
-      var input = row.querySelector("input");
-      input.addEventListener("input", function(){
-        var v = input.value;
-        if(v==="") delete lg[it.id]; else lg[it.id]=v;
-        save();
-        var lh = row.querySelector(".last-hint");
-        if(prev){
-          var a="";
-          if(v!=="" && !isNaN(+v) && !isNaN(+prev.kg)){ if(+v>+prev.kg) a=' <span class="up">↑ tăng</span>'; else if(+v<+prev.kg) a=' ↓'; }
-          lh.innerHTML = 'Lần trước (T'+prev.week+'): <b>'+prev.kg+' kg</b>'+a;
-        }
+      sets.forEach(function(st, i){
+        var r = document.createElement("div");
+        r.className = "set-row";
+        r.innerHTML =
+          '<span class="slabel">Set '+(i+1)+'</span>'+
+          '<div class="mini"><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="–" value="'+(st.kg||"")+'"><span class="u">kg</span></div>'+
+          '<div class="mini"><input type="number" inputmode="numeric" min="0" placeholder="–" value="'+(st.reps||"")+'"><span class="u">reps</span></div>';
+        var ins = r.querySelectorAll("input");
+        ins[0].addEventListener("input", function(){ st.kg = ins[0].value; save(); });
+        ins[1].addEventListener("input", function(){ st.reps = ins[1].value; save(); });
+        wrap.appendChild(r);
       });
-      div.appendChild(row);
+      div.appendChild(wrap);
     }
     return div;
   }
