@@ -188,6 +188,9 @@
   .tprog > i{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width 1s linear}
   .tcancel{border:none;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:800;cursor:pointer;padding:6px 8px}
   .tcancel:hover{color:var(--ink)}
+  .timer.flash{animation:tflash .45s ease 4}
+  @keyframes tflash{0%,100%{background:var(--surface);border-color:var(--line)}
+    50%{background:var(--accent);border-color:var(--accent)}}
   .finish{
     width:100%;border:none;border-radius:14px;padding:16px;font:inherit;font-size:16px;font-weight:800;
     letter-spacing:-.01em;cursor:pointer;transition:.18s;color:#fff;background:var(--accent);
@@ -614,50 +617,84 @@
   var tCount = document.getElementById("tCount");
   var tProg = document.getElementById("tProg");
   var tId = null, tEnd = 0, tTotal = 0;
+  var audioCtx = null, wakeLock = null;
 
   function fmt(s){ var m=Math.floor(s/60); var ss=s%60; return m+":"+(ss<10?"0":"")+ss; }
+
+  // Mở khoá âm thanh NGAY trong thao tác chạm (bắt buộc trên iOS Safari)
+  function ensureAudio(){
+    try{
+      if(!audioCtx){ var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; audioCtx=new AC(); }
+      if(audioCtx.state==="suspended") audioCtx.resume();
+      if(!audioCtx._unlocked){
+        var b=audioCtx.createBuffer(1,1,22050), s=audioCtx.createBufferSource();
+        s.buffer=b; s.connect(audioCtx.destination); s.start(0); audioCtx._unlocked=true;
+      }
+    }catch(e){}
+  }
+  // Giữ màn hình sáng trong lúc nghỉ để không bị khoá máy làm treo timer/âm thanh
+  function reqWake(){ try{ if("wakeLock" in navigator){ navigator.wakeLock.request("screen").then(function(w){ wakeLock=w; }).catch(function(){}); } }catch(e){} }
+  function relWake(){ try{ if(wakeLock){ wakeLock.release(); wakeLock=null; } }catch(e){} }
+
   function startTimer(sec){
-    stopTimer(true);
+    ensureAudio();
+    if(tId){ clearInterval(tId); tId=null; }
     tTotal = sec; tEnd = Date.now() + sec*1000;
+    timerEl.classList.remove("flash");
     timerEl.classList.add("running");
+    reqWake();
     tick();
-    tId = setInterval(tick, 250);
+    tId = setInterval(tick, 200);
   }
   function tick(){
     var left = Math.max(0, Math.round((tEnd - Date.now())/1000));
     tCount.textContent = fmt(left);
     tProg.style.width = (left/tTotal*100)+"%";
-    if(left<=0){ done(); }
+    if(tEnd - Date.now() <= 0){ finishTimer(); }
   }
-  function done(){
-    stopTimer(false);
-    beep(); if(navigator.vibrate) navigator.vibrate([200,80,200]);
-  }
-  function stopTimer(silent){
+  function finishTimer(){
     if(tId){ clearInterval(tId); tId=null; }
     timerEl.classList.remove("running");
+    relWake();
+    alarm();
+    if(navigator.vibrate){ navigator.vibrate([300,120,300,120,500]); }
+    flash();
   }
-  function beep(){
+  function stopTimer(){
+    if(tId){ clearInterval(tId); tId=null; }
+    timerEl.classList.remove("running");
+    relWake();
+  }
+  function flash(){
+    timerEl.classList.add("flash");
+    setTimeout(function(){ timerEl.classList.remove("flash"); }, 1800);
+  }
+  function tone(freq, start, dur){
+    var o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type="square"; o.frequency.value=freq;
+    o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.exponentialRampToValueAtTime(0.45, start+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, start+dur);
+    o.start(start); o.stop(start+dur+0.03);
+  }
+  function alarm(){
+    ensureAudio();
+    if(!audioCtx) return;
     try{
-      var AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
-      var ctx = new AC(); var t = ctx.currentTime;
-      [880,660].forEach(function(f,i){
-        var o=ctx.createOscillator(), g=ctx.createGain();
-        o.type="sine"; o.frequency.value=f;
-        o.connect(g); g.connect(ctx.destination);
-        var st=t+i*0.22;
-        g.gain.setValueAtTime(0.0001,st);
-        g.gain.exponentialRampToValueAtTime(0.35,st+0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001,st+0.2);
-        o.start(st); o.stop(st+0.22);
-      });
-      setTimeout(function(){ try{ctx.close();}catch(e){} }, 800);
+      if(audioCtx.state==="suspended") audioCtx.resume();
+      var t0 = audioCtx.currentTime + 0.02;
+      var seq = [880,660,880,660,988];
+      seq.forEach(function(f,i){ tone(f, t0 + i*0.26, 0.2); });
     }catch(e){}
   }
   Array.prototype.forEach.call(timerEl.querySelectorAll(".tbtn"), function(b){
     b.addEventListener("click", function(){ startTimer(+b.getAttribute("data-sec")); });
   });
-  document.getElementById("tCancel").addEventListener("click", function(){ stopTimer(true); });
+  document.getElementById("tCancel").addEventListener("click", function(){ stopTimer(); });
+  document.addEventListener("visibilitychange", function(){
+    if(document.visibilityState==="visible" && tId){ reqWake(); ensureAudio(); }
+  });
 
   render();
 })();
