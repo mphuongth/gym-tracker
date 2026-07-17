@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="40" y1="20" x2="472" y2="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF8A4D"/>
+      <stop offset=".55" stop-color="#F9541F"/>
+      <stop offset="1" stop-color="#D6320A"/>
+    </linearGradient>
+    <radialGradient id="hl" cx="150" cy="110" r="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="256" y1="120" x2="256" y2="392" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#FFE4D6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#hl)"/>
+
+  <g transform="rotate(-20 256 256)" fill="url(#metal)">
+    <rect x="190" y="232" width="132" height="48" rx="24"/>
+    <rect x="158" y="196" width="44" height="120" rx="20"/>
+    <rect x="310" y="196" width="44" height="120" rx="20"/>
+    <rect x="124" y="214" width="36" height="84" rx="17"/>
+    <rect x="352" y="214" width="36" height="84" rx="17"/>
+    <rect x="104" y="228" width="24" height="56" rx="12"/>
+    <rect x="384" y="228" width="24" height="56" rx="12"/>
+  </g>
+</svg>
