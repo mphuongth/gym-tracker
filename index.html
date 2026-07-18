@@ -161,6 +161,31 @@
   .safety p{margin:0;font-size:12.5px;color:var(--ink);line-height:1.5;opacity:.85}
   .safety .st{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);display:block;margin-bottom:5px}
 
+  /* Weight card + chart */
+  .weight-card{margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+  .weight-head{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+  .weight-head .tag{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .weight-head .rule{flex:1;height:1px;background:var(--line)}
+  .weight-input-row{display:flex;align-items:center;gap:10px}
+  .wlab{font-size:14px;font-weight:700}
+  .wlab b{color:var(--accent-ink)}
+  .wfield{margin-left:auto;display:flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:7px 12px}
+  .wfield input{width:66px;border:none;background:none;color:var(--ink);font:inherit;font-size:17px;font-weight:800;text-align:right;outline:none;font-variant-numeric:tabular-nums}
+  .wfield input::-webkit-outer-spin-button,.wfield input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .wfield .u{font-size:12.5px;font-weight:700;color:var(--muted)}
+  .wdelta{font-size:12.5px;font-weight:600;color:var(--muted);margin-top:9px;min-height:16px}
+  .wdelta .down{color:var(--success);font-weight:800}
+  .wdelta .up{color:var(--accent-ink);font-weight:800}
+  .chart-wrap{margin-top:14px;width:100%;overflow-x:auto}
+  .wempty{font-size:12.5px;color:var(--muted);text-align:center;padding:16px 0}
+  .chart svg{display:block;width:100%;height:auto}
+  .chart text{fill:var(--muted);font-size:9px;font-weight:700}
+  .chart .grid{stroke:var(--line);stroke-width:1}
+  .chart .line{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+  .chart .area{fill:var(--accent-soft)}
+  .chart .dot{fill:var(--surface);stroke:var(--accent);stroke-width:2}
+  .chart .dot.last{fill:var(--accent)}
+
   /* Sticky footer */
   .foot{
     position:fixed;left:0;right:0;bottom:0;padding:10px 16px calc(12px + env(safe-area-inset-bottom));
@@ -274,6 +299,22 @@
     <span class="st">⚠︎ An toàn cho lưng</span>
     <p><b>Dừng ngay</b> nếu đau nhói, đau lan xuống chân, tê hoặc yếu chân. Giữ lưng trung tính ở mọi bài (Squat, Hip Thrust, Leg Press). Nghỉ giữa hiệp 60–90s. Tránh chạy bộ nhiều — ưu tiên bike, elliptical, rowing, đi bộ dốc.</p>
   </div>
+
+  <div class="weight-card">
+    <div class="weight-head">
+      <span class="tag">Cân nặng theo tuần</span>
+      <span class="rule"></span>
+    </div>
+    <div class="weight-input-row">
+      <span class="wlab">Đầu <b id="wWeekLabel">Tuần 1</b></span>
+      <div class="wfield">
+        <input id="wInput" type="number" inputmode="decimal" step="0.1" min="0" placeholder="–">
+        <span class="u">kg</span>
+      </div>
+    </div>
+    <div class="wdelta" id="wDelta"></div>
+    <div class="chart-wrap"><div class="chart" id="wChart"></div></div>
+  </div>
 </div>
 
 <div class="foot">
@@ -360,9 +401,9 @@
 
   function load(){
     try{ var s = JSON.parse(localStorage.getItem(KEY));
-      if(s && typeof s.current==="number"){ if(!s.checks) s.checks={}; if(!s.logs) s.logs={}; return s; }
+      if(s && typeof s.current==="number"){ if(!s.checks) s.checks={}; if(!s.logs) s.logs={}; if(!s.weights) s.weights={}; return s; }
     }catch(e){}
-    return { current:0, checks:{}, logs:{} };
+    return { current:0, checks:{}, logs:{}, weights:{} };
   }
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -460,7 +501,89 @@
       elSections.appendChild(sec);
     });
     updateProgress();
+    renderWeight();
   }
+
+  // ---- Cân nặng theo tuần ----
+  function renderWeight(){
+    var wk = meta(state.current).week;
+    document.getElementById("wWeekLabel").textContent = "Tuần " + wk;
+    var input = document.getElementById("wInput");
+    if(document.activeElement !== input){
+      input.value = (state.weights[wk]!=null) ? state.weights[wk] : "";
+    }
+    renderWDelta(wk);
+    renderWChart();
+  }
+  function renderWDelta(wk){
+    var el = document.getElementById("wDelta");
+    var cur = state.weights[wk];
+    if(cur==null || cur==="" || isNaN(+cur)){ el.innerHTML = ""; return; }
+    var prevWk = null;
+    for(var w=wk-1; w>=1; w--){ if(state.weights[w]!=null && state.weights[w]!=="" && !isNaN(+state.weights[w])){ prevWk=w; break; } }
+    if(prevWk==null){ el.textContent = "Tuần đầu tiên ghi nhận — hãy tiếp tục đo mỗi đầu tuần."; return; }
+    var diff = (+cur) - (+state.weights[prevWk]);
+    var r = Math.abs(diff).toFixed(1);
+    if(diff < 0) el.innerHTML = '<span class="down">↓ '+r+' kg</span> so với Tuần '+prevWk;
+    else if(diff > 0) el.innerHTML = '<span class="up">↑ '+r+' kg</span> so với Tuần '+prevWk;
+    else el.innerHTML = 'Không đổi so với Tuần '+prevWk;
+  }
+  function renderWChart(){
+    var el = document.getElementById("wChart");
+    var weeks = Object.keys(state.weights).map(Number)
+      .filter(function(w){ return state.weights[w]!=null && state.weights[w]!=="" && !isNaN(+state.weights[w]); })
+      .sort(function(a,b){ return a-b; });
+    if(weeks.length===0){
+      el.innerHTML = '<div class="wempty">Chưa có dữ liệu. Nhập cân nặng để bắt đầu vẽ biểu đồ.</div>';
+      return;
+    }
+    var W=320, H=172, padL=30, padR=12, padT=12, padB=24;
+    var pts = weeks.map(function(w){ return { w:w, v:+state.weights[w] }; });
+    var minW=weeks[0], maxW=weeks[weeks.length-1];
+    var vals = pts.map(function(p){ return p.v; });
+    var minV=Math.min.apply(null,vals), maxV=Math.max.apply(null,vals);
+    if(minV===maxV){ minV-=1; maxV+=1; } else { var pv=(maxV-minV)*0.18; minV-=pv; maxV+=pv; }
+    function X(w){ return padL + (maxW===minW ? 0.5 : (w-minW)/(maxW-minW)) * (W-padL-padR); }
+    function Y(v){ return padT + (1-(v-minV)/(maxV-minV)) * (H-padT-padB); }
+
+    var svg = '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+    // Lưới ngang + nhãn cân nặng (3 mức)
+    for(var g=0; g<3; g++){
+      var vv = minV + (maxV-minV)*g/2;
+      var yy = Y(vv);
+      svg += '<line class="grid" x1="'+padL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+yy.toFixed(1)+'"/>';
+      svg += '<text x="'+(padL-5)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end">'+vv.toFixed(1)+'</text>';
+    }
+    // Đường + vùng tô
+    var lineD="", areaD="";
+    pts.forEach(function(p,i){
+      var px=X(p.w).toFixed(1), py=Y(p.v).toFixed(1);
+      lineD += (i===0?"M":"L")+px+","+py+" ";
+      areaD += (i===0?"M":"L")+px+","+py+" ";
+    });
+    if(pts.length>1){
+      areaD += "L"+X(maxW).toFixed(1)+","+(H-padB)+" L"+X(minW).toFixed(1)+","+(H-padB)+" Z";
+      svg += '<path class="area" d="'+areaD+'"/>';
+      svg += '<path class="line" d="'+lineD+'"/>';
+    }
+    // Điểm + nhãn tuần
+    pts.forEach(function(p,i){
+      var px=X(p.w).toFixed(1), py=Y(p.v).toFixed(1);
+      var last = (i===pts.length-1);
+      svg += '<circle class="dot'+(last?" last":"")+'" cx="'+px+'" cy="'+py+'" r="'+(last?4:3.2)+'"/>';
+      svg += '<text x="'+px+'" y="'+(H-8)+'" text-anchor="middle">T'+p.w+'</text>';
+    });
+    svg += '</svg>';
+    el.innerHTML = svg;
+  }
+  document.getElementById("wInput").addEventListener("input", function(){
+    var wk = meta(state.current).week;
+    var v = this.value;
+    if(v==="") delete state.weights[wk]; else state.weights[wk]=v;
+    save();
+    renderWDelta(wk);
+    renderWChart();
+  });
 
   function renderItem(it, chk, g){
     var on = !!chk[it.id];
@@ -635,7 +758,7 @@
       document.getElementById("mResetLabel").innerHTML = '⚠︎ Chạm lần nữa để xác nhận xóa<small>Không thể hoàn tác</small>';
       return;
     }
-    state={current:0,checks:{},logs:{}}; save(); render(); closeMenu();
+    state={current:0,checks:{},logs:{},weights:{}}; save(); render(); closeMenu();
   });
 
   // ---- Xuất / Nhập dữ liệu (backup) ----
@@ -666,6 +789,7 @@
         if(!s || typeof s.current !== "number" || typeof s.checks !== "object") throw new Error("bad");
         if(!s.logs) s.logs = {};
         if(!s.checks) s.checks = {};
+        if(!s.weights) s.weights = {};
         state = s; save(); render(); closeMenu();
         showMsg("✅", "Đã khôi phục dữ liệu", "Tiến độ và mức tạ đã được nạp từ file backup.");
       }catch(e){
