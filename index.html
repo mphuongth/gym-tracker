@@ -803,6 +803,8 @@
 
   function updateProgress(){
     var n = curProg().current;
+    var items = buildItems(n);
+    var chk = checksFor(n);
     var total = items.length;
     var done = items.filter(function(it){ return chk[it.id]; }).length;
     document.getElementById("doneCount").textContent = done;
