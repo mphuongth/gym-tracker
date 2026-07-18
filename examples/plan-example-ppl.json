@@ -1,0 +1,46 @@
+{
+  "schema": "gym-plan/v1",
+  "name": "Push / Pull / Legs (4 buổi)",
+  "goal": "Tăng cơ · 4 buổi/tuần",
+  "daysPerWeek": 4,
+  "dayLabels": ["Thứ 2", "Thứ 3", "Thứ 5", "Thứ 6"],
+  "sessionOrder": ["Push", "Pull", "Legs", "Core"],
+  "warmup": [
+    { "name": "Xe đạp / elliptical nhẹ", "detail": "5 phút" },
+    { "name": "Xoay khớp vai · hông · gối", "detail": "10 vòng mỗi khớp" }
+  ],
+  "cooldown": [
+    { "name": "Giãn cơ toàn thân", "detail": "5 phút" }
+  ],
+  "sessions": {
+    "Push": {
+      "title": "Push (Đẩy)",
+      "exercises": [
+        { "name": "Bench Press", "detail": "4 × 8", "note": "Giữ vai ổn định" },
+        { "name": "Overhead Press", "detail": "3 × 10", "alt": "Machine Shoulder Press" },
+        { "name": "Cardio nhẹ", "detail": "10 phút" }
+      ]
+    },
+    "Pull": {
+      "title": "Pull (Kéo)",
+      "exercises": [
+        { "name": "Deadlift", "detail": "4 × 6", "note": "Lưng trung tính" },
+        { "name": "Pull-up", "detail": "3 × 8", "alt": "Lat Pulldown" }
+      ]
+    },
+    "Legs": {
+      "title": "Legs (Chân)",
+      "exercises": [
+        { "name": "Squat", "detail": "4 × 8" },
+        { "name": "Leg Curl", "detail": "3 × 12" }
+      ]
+    },
+    "Core": {
+      "title": "Core",
+      "exercises": [
+        { "name": "Plank", "detail": "3 × 45s" },
+        { "name": "Hanging Leg Raise", "detail": "3 × 12" }
+      ]
+    }
+  }
+}
