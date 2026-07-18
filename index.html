@@ -1083,6 +1083,7 @@
       var p = state.plans[id], def = p.def, active = (id===state.activePlan);
       var s = planSummary(def);
       var wk = Math.floor((p.progress.current||0)/(def.daysPerWeek||1))+1;
+      var canDelete = Object.keys(state.plans).length > 1; // luôn giữ ít nhất 1 kế hoạch
       var card = document.createElement("div");
       card.className = "plan-item" + (active?" active":"");
       card.innerHTML =
@@ -1095,7 +1096,7 @@
           '<span class="pi-chip">Đang ở tuần '+wk+'</span>'+
         '</div>'+
         '<div class="pi-foot"><span class="pi-date">'+fmtDate(p.uploadedAt)+'</span>'+
-          (id==="default" ? '' : '<button class="pi-del" data-id="'+id+'">Xoá</button>')+
+          (canDelete ? '<button class="pi-del" data-id="'+id+'">Xoá</button>' : '')+
         '</div>';
       if(!active) card.addEventListener("click", function(e){ if(e.target.classList.contains("pi-del")) return; selectPlan(id); });
       var del = card.querySelector(".pi-del");
@@ -1115,7 +1116,8 @@
   }
   function selectPlan(id){ if(!state.plans[id]) return; state.activePlan=id; save(); render(); closePlanModal(); }
   function deletePlan(id){
-    if(id==="default" || !state.plans[id]) return;
+    if(!state.plans[id]) return;
+    if(Object.keys(state.plans).length <= 1) return; // luôn giữ ít nhất 1 kế hoạch
     var wasActive = (id===state.activePlan);
     delete state.plans[id];
     if(wasActive) state.activePlan = Object.keys(state.plans)[0];
