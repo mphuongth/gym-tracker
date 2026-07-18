@@ -308,7 +308,7 @@
     <div class="weight-input-row">
       <span class="wlab">Đầu <b id="wWeekLabel">Tuần 1</b></span>
       <div class="wfield">
-        <input id="wInput" type="number" inputmode="decimal" step="0.1" min="0" placeholder="–">
+        <input id="wInput" type="text" inputmode="decimal" placeholder="–">
         <span class="u">kg</span>
       </div>
     </div>
@@ -578,7 +578,7 @@
   }
   document.getElementById("wInput").addEventListener("input", function(){
     var wk = meta(state.current).week;
-    var v = this.value;
+    var v = this.value.replace(",", ".");
     if(v==="") delete state.weights[wk]; else state.weights[wk]=v;
     save();
     renderWDelta(wk);
@@ -629,10 +629,10 @@
         } else {
           r.innerHTML =
             '<span class="slabel">Set '+(i+1)+'</span>'+
-            '<div class="mini"><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="–" value="'+(st.kg||"")+'"><span class="u">kg</span></div>'+
+            '<div class="mini"><input type="text" inputmode="decimal" placeholder="–" value="'+(st.kg||"")+'"><span class="u">kg</span></div>'+
             '<div class="mini"><input type="number" inputmode="numeric" min="0" placeholder="–" value="'+(st.reps||"")+'"><span class="u">reps</span></div>';
           var ins = r.querySelectorAll("input");
-          ins[0].addEventListener("input", function(){ st.kg = ins[0].value; save(); });
+          ins[0].addEventListener("input", function(){ st.kg = ins[0].value.replace(",", "."); save(); });
           ins[1].addEventListener("input", function(){ st.reps = ins[1].value; save(); });
         }
         wrap.appendChild(r);
