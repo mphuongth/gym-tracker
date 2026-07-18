@@ -49,11 +49,11 @@
 
   *{box-sizing:border-box}
   body{
-    margin:0;background:var(--bg);color:var(--ink);
+    margin:0;background:var(--bg);color:var(--ink);overflow-x:hidden;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
     -webkit-font-smoothing:antialiased;line-height:1.45;
   }
-  .wrap{max-width:520px;margin:0 auto;padding:0 16px 132px;min-height:100vh}
+  .wrap{max-width:520px;margin:0 auto;padding:0 16px 132px;min-height:100vh;overflow-x:hidden}
   .tnum{font-variant-numeric:tabular-nums}
 
   /* Header */
@@ -77,9 +77,10 @@
   .subtitle{margin-top:8px;color:var(--muted);font-size:14px;font-weight:500}
 
   /* Week strip */
-  .week-strip{display:flex;gap:8px;margin-top:16px}
+  .week-strip{display:flex;gap:8px;margin-top:16px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .week-strip::-webkit-scrollbar{display:none}
   .day-chip{
-    flex:1;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    flex:1 0 84px;min-width:84px;background:var(--surface);border:1px solid var(--line);border-radius:12px;
     padding:9px 6px;text-align:center;box-shadow:var(--shadow);position:relative;
   }
   .day-chip .dlabel{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -230,7 +231,7 @@
   /* Overlay */
   .overlay{
     position:fixed;inset:0;background:rgba(10,12,16,.55);backdrop-filter:blur(4px);
-    display:none;place-items:center;padding:24px;z-index:20;
+    display:none;place-items:center;padding:24px;z-index:50;
   }
   .overlay.show{display:grid;animation:fade .25s ease}
   @keyframes fade{from{opacity:0}to{opacity:1}}
@@ -265,6 +266,72 @@
   .sheet-btn.danger .em{filter:none}
   :root[data-theme="dark"] .sheet-btn.danger,@media (prefers-color-scheme:dark){.sheet-btn.danger{color:#FF6F5E}}
 
+  /* Plan chip (header) */
+  .plan-chip{display:inline-flex;align-items:center;gap:6px;max-width:calc(100% - 46px);
+    background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 11px;
+    font:inherit;cursor:pointer;color:var(--ink);transition:.15s;box-shadow:var(--shadow)}
+  .plan-chip:hover{border-color:var(--accent)}
+  .plan-chip .pc-icon{color:var(--accent-ink);font-size:12px;line-height:1}
+  .plan-chip .pc-name{font-size:12.5px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .plan-chip .chev{color:var(--muted);font-size:11px;flex-shrink:0}
+  .day-chip.long .dtype{font-size:13px;line-height:1.15;padding:2px 2px 0}
+
+  /* Plan modal */
+  .plan-modal{position:fixed;inset:0;background:rgba(10,12,16,.55);backdrop-filter:blur(4px);
+    display:none;align-items:flex-end;justify-content:center;z-index:40}
+  .plan-modal.show{display:flex;animation:fade .2s ease}
+  .pm-panel{background:var(--bg);width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column;
+    border-top-left-radius:22px;border-top-right-radius:22px;box-shadow:var(--shadow);
+    animation:slideup .3s cubic-bezier(.34,1.2,.6,1);overflow:hidden}
+  @media(min-width:560px){.plan-modal{align-items:center}.pm-panel{border-radius:22px;max-height:82vh}}
+  .pm-head{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 12px;flex-shrink:0}
+  .pm-head h2{margin:0;font-size:21px;font-weight:800;letter-spacing:-.02em}
+  .pm-close{border:1px solid var(--line);background:var(--surface);color:var(--muted);width:32px;height:32px;
+    border-radius:9px;cursor:pointer;font-size:14px;display:grid;place-items:center}
+  .pm-close:hover{color:var(--ink);border-color:var(--muted)}
+  .pm-body{padding:0 16px calc(20px + env(safe-area-inset-bottom));overflow-y:auto}
+  .pm-actions{display:flex;gap:8px;margin-bottom:6px}
+  .pm-add{flex:1;min-width:0;border:none;border-radius:12px;padding:13px;font:inherit;font-size:14.5px;font-weight:800;
+    color:#fff;background:var(--accent);cursor:pointer;box-shadow:0 8px 22px -10px var(--accent);
+    display:flex;align-items:center;justify-content:center;gap:6px}
+  .pm-tmpl{flex-shrink:0}
+  .pm-add span{font-size:18px}
+  .pm-tmpl{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:12px;
+    padding:13px 14px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .pm-tmpl:hover{color:var(--ink);border-color:var(--muted)}
+  .pm-upload{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0 4px}
+  .pm-uphint{margin:0 0 10px;font-size:12px;color:var(--muted);line-height:1.5}
+  .pm-uphint b{color:var(--accent-ink)}
+  #pmPaste{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);
+    border-radius:10px;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;
+    line-height:1.5;resize:vertical;outline:none}
+  #pmPaste:focus{border-color:var(--accent)}
+  .pm-uprow{display:flex;gap:8px;margin-top:9px}
+  .pm-file{flex:1;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:10px;
+    padding:11px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
+  .pm-file:hover{border-color:var(--muted)}
+  .pm-import{border:none;background:var(--accent);color:#fff;border-radius:10px;padding:11px 18px;
+    font:inherit;font-size:13.5px;font-weight:800;cursor:pointer}
+  .pm-list{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+  .plan-item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;
+    box-shadow:var(--shadow);cursor:pointer;transition:border-color .15s}
+  .plan-item:hover{border-color:var(--muted)}
+  .plan-item.active{border-color:var(--accent);cursor:default}
+  .pi-top{display:flex;align-items:flex-start;gap:10px}
+  .pi-name{font-size:15.5px;font-weight:800;letter-spacing:-.01em;line-height:1.3;flex:1;min-width:0}
+  .pi-badge{flex-shrink:0;font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+    color:#fff;background:var(--accent);border-radius:999px;padding:4px 9px}
+  .pi-goal{font-size:12.5px;color:var(--muted);font-weight:600;margin-top:3px;line-height:1.4}
+  .pi-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .pi-chip{font-size:11px;font-weight:700;color:var(--muted);background:var(--surface-2);
+    border:1px solid var(--line);border-radius:7px;padding:3px 8px}
+  .pi-foot{display:flex;align-items:center;justify-content:space-between;margin-top:11px}
+  .pi-date{font-size:11px;color:var(--muted);font-weight:600}
+  .pi-del{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:8px;
+    padding:6px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  .pi-del:hover{color:#D33A2C;border-color:#D33A2C}
+  .pi-del.armed{color:#fff;background:#D33A2C;border-color:#D33A2C}
+
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -273,7 +340,9 @@
 <div class="wrap">
   <header>
     <div class="eyebrow">
-      <span>Kế hoạch giảm mỡ · Full Body A/B</span>
+      <button class="plan-chip" id="planChipBtn" aria-label="Đổi kế hoạch tập">
+        <span class="pc-icon">▤</span><span class="pc-name" id="planChipName">Kế hoạch</span><span class="chev">▾</span>
+      </button>
       <button class="icon-btn" id="menuBtn" title="Tùy chọn" aria-label="Tùy chọn">⋯</button>
     </div>
     <div class="title-row">
@@ -350,6 +419,33 @@
   </div>
 </div>
 
+<div class="plan-modal" id="planModal">
+  <div class="pm-panel">
+    <div class="pm-head">
+      <h2>Kế hoạch tập</h2>
+      <button class="pm-close" id="pmClose" aria-label="Đóng">✕</button>
+    </div>
+    <div class="pm-body">
+      <div class="pm-actions">
+        <button class="pm-add" id="pmAddToggle"><span>＋</span> Thêm kế hoạch mới</button>
+        <button class="pm-tmpl" id="pmTemplate">Tải mẫu</button>
+      </div>
+
+      <div class="pm-upload" id="pmUpload" hidden>
+        <p class="pm-uphint">Dán JSON kế hoạch, hoặc chọn file <b>.json</b>. Nhờ Claude xuất theo <b>format gym-plan/v1</b> — bấm "Tải template" để lấy mẫu.</p>
+        <textarea id="pmPaste" placeholder='{ "schema": "gym-plan/v1", "name": "...", "sessionOrder": ["A","B"], "sessions": { ... } }' rows="5"></textarea>
+        <div class="pm-uprow">
+          <button class="pm-file" id="pmPickFile">Chọn file .json</button>
+          <input type="file" id="pmFile" accept="application/json,.json" style="display:none">
+          <button class="pm-import" id="pmImport">Thêm plan</button>
+        </div>
+      </div>
+
+      <div class="pm-list" id="pmList"></div>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="overlay">
   <div class="card-pop">
     <div class="big" id="popEmoji">🎉</div>
@@ -364,64 +460,100 @@
 (function(){
   "use strict";
 
-  // ---- Dữ liệu bài tập (từ file Plan_Tap_Gym_Giam_Mo.md) ----
-  var WARMUP = [
-    {n:"Bike / Elliptical nhẹ", d:"3–5 phút"},
-    {n:"Xoay khớp vai · hông · gối", d:"10 vòng × 2 chiều mỗi khớp"},
-    {n:"Bird Dog", d:"2 × 8 mỗi bên", note:"Kích hoạt core, chuẩn bị cột sống"},
-    {n:"Cat-Cow nhẹ (không tạ)", d:"10 lần", note:"Làm ấm cột sống trước bài chính"}
-  ];
-  var A = [
-    {n:"Goblet Squat / Leg Press", d:"3 × 10–12", note:"Giữ lưng thẳng, không gập quá sâu"},
-    {n:"Chest Press machine", d:"3 × 10–12", alt:"Dumbbell Chest Press (khi quen tạ tự do)", note:"Chỉnh ghế để vai không bị đẩy lên"},
-    {n:"Lat Pulldown", d:"3 × 10–12", alt:"Seated Cable Row"},
-    {n:"Dumbbell Shoulder Press", d:"3 × 10–12", alt:"Machine Shoulder Press"},
-    {n:"Plank", d:"3 × 30–45s", alt:"Bird Dog", note:"Không cong lưng dưới, giữ trung tính"},
-    {n:"Finisher · Đi bộ leo dốc", d:"15–20 phút · incline 8–12% · 4–5 km/h", note:"Lưng thẳng, không khom người về trước"}
-  ];
-  var B = [
-    {n:"Hip Thrust (máy / tạ đòn)", d:"3 × 10–12", alt:"Glute Bridge (nếu chưa quen tạ)", note:"An toàn hơn Deadlift cho lưng"},
-    {n:"Incline Dumbbell Press", d:"3 × 10–12", alt:"Machine Incline Press"},
-    {n:"Seated Row", d:"3 × 10–12", alt:"Lat Pulldown"},
-    {n:"Leg Press (chân rộng)", d:"3 × 10–12", alt:"Bulgarian Split Squat (nhẹ)"},
-    {n:"Side Plank", d:"3 × 20–30s mỗi bên", alt:"Cable Crunch nhẹ", note:"Ưu tiên isometric hơn gập lặp"},
-    {n:"Finisher · Rowing / Elliptical", d:"15–20 phút · 1' nhanh / 2' chậm × 4–5", note:"Có thể đổi qua đi bộ leo dốc"}
-  ];
-  var COOLDOWN = [
-    {n:"Đi bộ chậm trên máy", d:"2–3 phút", note:"Giảm nhịp tim từ từ"},
-    {n:"Child's Pose", d:"30–45s", note:"Giảm áp lực cột sống"},
-    {n:"Giãn gân kheo (nằm ngửa, kéo dây)", d:"30s mỗi bên", note:"Tránh đứng cúi người chạm chân"},
-    {n:"Giãn cơ hông (hip flexor)", d:"30s mỗi bên"},
-    {n:"Hít thở sâu, thư giãn toàn thân", d:"5–10 nhịp"}
-  ];
+  // ---- Plan mặc định (từ file Plan_Tap_Gym_Giam_Mo.md), theo format gym-plan/v1 ----
+  var BUILTIN_PLAN = {
+    schema: "gym-plan/v1",
+    name: "Giảm mỡ — Full Body A/B",
+    goal: "Giảm cân/giảm mỡ · 3 buổi/tuần",
+    daysPerWeek: 3,
+    dayLabels: ["Thứ 2", "Thứ 4", "Thứ 6"],
+    sessionOrder: ["A", "B"],
+    warmup: [
+      {name:"Bike / Elliptical nhẹ", detail:"3–5 phút"},
+      {name:"Xoay khớp vai · hông · gối", detail:"10 vòng × 2 chiều mỗi khớp"},
+      {name:"Bird Dog", detail:"2 × 8 mỗi bên", note:"Kích hoạt core, chuẩn bị cột sống"},
+      {name:"Cat-Cow nhẹ (không tạ)", detail:"10 lần", note:"Làm ấm cột sống trước bài chính"}
+    ],
+    cooldown: [
+      {name:"Đi bộ chậm trên máy", detail:"2–3 phút", note:"Giảm nhịp tim từ từ"},
+      {name:"Child's Pose", detail:"30–45s", note:"Giảm áp lực cột sống"},
+      {name:"Giãn gân kheo (nằm ngửa, kéo dây)", detail:"30s mỗi bên", note:"Tránh đứng cúi người chạm chân"},
+      {name:"Giãn cơ hông (hip flexor)", detail:"30s mỗi bên"},
+      {name:"Hít thở sâu, thư giãn toàn thân", detail:"5–10 nhịp"}
+    ],
+    sessions: {
+      A: { title:"Buổi A", exercises: [
+        {name:"Goblet Squat / Leg Press", detail:"3 × 10–12", note:"Giữ lưng thẳng, không gập quá sâu"},
+        {name:"Chest Press machine", detail:"3 × 10–12", alt:"Dumbbell Chest Press (khi quen tạ tự do)", note:"Chỉnh ghế để vai không bị đẩy lên"},
+        {name:"Lat Pulldown", detail:"3 × 10–12", alt:"Seated Cable Row"},
+        {name:"Dumbbell Shoulder Press", detail:"3 × 10–12", alt:"Machine Shoulder Press"},
+        {name:"Plank", detail:"3 × 30–45s", alt:"Bird Dog", note:"Không cong lưng dưới, giữ trung tính"},
+        {name:"Finisher · Đi bộ leo dốc", detail:"15–20 phút · incline 8–12% · 4–5 km/h", note:"Lưng thẳng, không khom người về trước"}
+      ]},
+      B: { title:"Buổi B", exercises: [
+        {name:"Hip Thrust (máy / tạ đòn)", detail:"3 × 10–12", alt:"Glute Bridge (nếu chưa quen tạ)", note:"An toàn hơn Deadlift cho lưng"},
+        {name:"Incline Dumbbell Press", detail:"3 × 10–12", alt:"Machine Incline Press"},
+        {name:"Seated Row", detail:"3 × 10–12", alt:"Lat Pulldown"},
+        {name:"Leg Press (chân rộng)", detail:"3 × 10–12", alt:"Bulgarian Split Squat (nhẹ)"},
+        {name:"Side Plank", detail:"3 × 20–30s mỗi bên", alt:"Cable Crunch nhẹ", note:"Ưu tiên isometric hơn gập lặp"},
+        {name:"Finisher · Rowing / Elliptical", detail:"15–20 phút · 1' nhanh / 2' chậm × 4–5", note:"Có thể đổi qua đi bộ leo dốc"}
+      ]}
+    }
+  };
 
-  // ---- Trạng thái ----
+  // ---- Trạng thái (đa-plan) ----
   var KEY = "gymplan_v1";
   var state = load();
 
+  function newId(){ return "plan_" + Date.now().toString(36) + "_" + Math.floor(Math.random()*1e6).toString(36); }
+  function makePlanEntry(def, uploadedAt){
+    return { name:def.name, goal:def.goal||"", uploadedAt:uploadedAt||null, def:def,
+             progress:{ current:0, checks:{}, logs:{} } };
+  }
+  function defaultState(){
+    var st = { activePlan:"default", plans:{}, weights:{} };
+    st.plans["default"] = makePlanEntry(BUILTIN_PLAN, null);
+    return st;
+  }
   function load(){
-    try{ var s = JSON.parse(localStorage.getItem(KEY));
-      if(s && typeof s.current==="number"){ if(!s.checks) s.checks={}; if(!s.logs) s.logs={}; if(!s.weights) s.weights={}; return s; }
+    try{
+      var s = JSON.parse(localStorage.getItem(KEY));
+      if(s && s.plans && s.activePlan && s.plans[s.activePlan]){ if(!s.weights) s.weights={}; return s; }
+      // Di trú bản cũ: { current, checks, logs, weights }
+      if(s && typeof s.current==="number"){
+        var st = { activePlan:"default", plans:{}, weights: s.weights||{} };
+        var e = makePlanEntry(BUILTIN_PLAN, null);
+        e.progress = { current:s.current||0, checks:s.checks||{}, logs:s.logs||{} };
+        st.plans["default"] = e;
+        return st;
+      }
     }catch(e){}
-    return { current:0, checks:{}, logs:{}, weights:{} };
+    return defaultState();
   }
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+  function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+  function curPlan(){ return state.plans[state.activePlan]; }
+  function curDef(){ return curPlan().def; }
+  function curProg(){ return curPlan().progress; }
 
   function meta(n){
-    return { type: (n%2===0)?"A":"B", week: Math.floor(n/3)+1, pos: n%3 };
+    var d = curDef(), order = d.sessionOrder, dpw = d.daysPerWeek;
+    var k = order[((n % order.length) + order.length) % order.length];
+    var sess = d.sessions[k] || {};
+    return { key:k, title: sess.title || ("Buổi " + k), week: Math.floor(n/dpw)+1, pos: n % dpw };
   }
   function buildItems(n){
-    var m = meta(n);
-    var main = m.type==="A" ? A : B;
+    var d = curDef(), m = meta(n);
+    var sess = d.sessions[m.key] || { exercises:[] };
     var items = [];
-    WARMUP.forEach(function(x,i){ items.push(mk("w",i,x)); });
-    main.forEach(function(x,i){ items.push(mk("m",i,x)); });
-    COOLDOWN.forEach(function(x,i){ items.push(mk("c",i,x)); });
+    (d.warmup||[]).forEach(function(x,i){ items.push({id:"w"+i, group:"w", ex:x}); });
+    (sess.exercises||[]).forEach(function(x,i){ items.push({id:"m"+i, group:"m", ex:x}); });
+    (d.cooldown||[]).forEach(function(x,i){ items.push({id:"c"+i, group:"c", ex:x}); });
     return items;
-    function mk(g,i,x){ return {id:g+i, group:g, ex:x}; }
   }
-  function checksFor(n){ if(!state.checks[n]) state.checks[n]={}; return state.checks[n]; }
-  function logsFor(n){ if(!state.logs[n]) state.logs[n]={}; return state.logs[n]; }
+  function checksFor(n){ var p=curProg(); if(!p.checks[n]) p.checks[n]={}; return p.checks[n]; }
+  function logsFor(n){ var p=curProg(); if(!p.logs[n]) p.logs[n]={}; return p.logs[n]; }
 
   // Lấy mảng set {kg,reps} cho 1 bài, tự tạo đủ số set & chuyển đổi dữ liệu cũ (chuỗi kg đơn)
   function getSets(n, id, count){
@@ -437,14 +569,19 @@
     if(typeof v === "string") return v !== "";
     return Array.isArray(v) && v.some(function(x){ return (x.kg&&x.kg!=="")||(x.reps&&x.reps!=="")||(x.sec&&x.sec!==""); });
   }
-  // Bài giữ theo thời gian (Plank…) — detail có dạng "…30–45s"
-  function isHold(detail){ return /\d\s*s(?![a-zA-Zà-ỹ])/i.test(detail); }
-  // Lần ghi gần nhất cho cùng bài & cùng loại buổi (A/B) — dùng để nhắc tăng tiến
+  // Phân loại bài chính để biết cách ghi: "weight" (tạ+reps), "hold" (giây), "none" (cardio/không ghi)
+  function exKind(detail){
+    var d = detail || "";
+    if(!/^\s*\d+\s*[×x]/.test(d)) return "none";           // không mở đầu bằng "N × …" → cardio/finisher
+    if(/\d\s*s(?![a-zA-Zà-ỹ])/i.test(d)) return "hold";     // reps là thời gian (giây)
+    return "weight";
+  }
+  // Lần ghi gần nhất cho cùng bài & cùng buổi (theo key) — dùng để nhắc tăng tiến
   function lastSets(n, id){
-    var type = meta(n).type;
+    var key = meta(n).key, logs = curProg().logs;
     for(var s=n-1; s>=0; s--){
-      var lg = state.logs[s];
-      if(meta(s).type===type && lg && lg[id]!=null && setHasData(lg[id])){
+      var lg = logs[s];
+      if(meta(s).key===key && lg && lg[id]!=null && setHasData(lg[id])){
         var v = lg[id];
         if(typeof v === "string") v = [{kg:v, reps:""}];
         return { week: meta(s).week, sets: v };
@@ -467,25 +604,26 @@
 
   // ---- Render ----
   var elSections = document.getElementById("sections");
-  var TOTAL = 15;
 
   function render(){
-    var n = state.current, m = meta(n);
+    var n = curProg().current, m = meta(n);
+    document.getElementById("planChipName").textContent = curDef().name;
     document.getElementById("weekTitle").textContent = "Tuần " + m.week;
-    document.getElementById("dayBadge").textContent = "Buổi " + m.type;
-    document.getElementById("sessionSub").textContent = "Buổi " + (m.pos+1) + " / 3 trong tuần";
+    document.getElementById("dayBadge").textContent = m.title;
+    document.getElementById("sessionSub").textContent = "Buổi " + (m.pos+1) + " / " + curDef().daysPerWeek + " trong tuần";
     renderWeekStrip(m);
 
     var items = buildItems(n);
     var chk = checksFor(n);
     var groups = [
       {tag:"Khởi động", g:"w"},
-      {tag:"Bài chính · Buổi "+m.type, g:"m"},
+      {tag:"Bài chính · "+m.title, g:"m"},
       {tag:"Thư giãn", g:"c"}
     ];
     elSections.innerHTML = "";
     groups.forEach(function(grp){
       var list = items.filter(function(it){return it.group===grp.g;});
+      if(list.length===0) return; // ẩn nhóm rỗng (plan có thể bỏ khởi động/thư giãn)
       var doneN = list.filter(function(it){return chk[it.id];}).length;
       var sec = document.createElement("section");
       sec.className = "section";
@@ -506,7 +644,7 @@
 
   // ---- Cân nặng theo tuần ----
   function renderWeight(){
-    var wk = meta(state.current).week;
+    var wk = meta(curProg().current).week;
     document.getElementById("wWeekLabel").textContent = "Tuần " + wk;
     var input = document.getElementById("wInput");
     if(document.activeElement !== input){
@@ -577,7 +715,7 @@
     el.innerHTML = svg;
   }
   document.getElementById("wInput").addEventListener("input", function(){
-    var wk = meta(state.current).week;
+    var wk = meta(curProg().current).week;
     var v = this.value.replace(",", ".");
     if(v==="") delete state.weights[wk]; else state.weights[wk]=v;
     save();
@@ -590,33 +728,35 @@
     var div = document.createElement("div");
     div.className = "item" + (on?" checked":"");
     var meta = "";
-    if(it.ex.alt) meta += '<div class="meta-line"><span class="k">Thay thế</span><span>'+it.ex.alt+'</span></div>';
-    if(it.ex.note) meta += '<div class="meta-line"><span class="k">Lưu ý</span><span>'+it.ex.note+'</span></div>';
+    if(it.ex.alt) meta += '<div class="meta-line"><span class="k">Thay thế</span><span>'+esc(it.ex.alt)+'</span></div>';
+    if(it.ex.note) meta += '<div class="meta-line"><span class="k">Lưu ý</span><span>'+esc(it.ex.note)+'</span></div>';
     div.innerHTML =
       '<button class="item-row" aria-pressed="'+on+'">'+
         '<span class="check"><svg viewBox="0 0 18 18"><path d="M3.5 9.5l3.5 3.5 7.5-8"/></svg></span>'+
         '<span class="item-main">'+
-          '<span class="ex-name">'+it.ex.n+'</span>'+
-          '<span class="ex-detail tnum">'+it.ex.d+'</span>'+
+          '<span class="ex-name">'+esc(it.ex.name)+'</span>'+
+          '<span class="ex-detail tnum">'+esc(it.ex.detail)+'</span>'+
           (meta?'<span class="ex-meta">'+meta+'</span>':'')+
         '</span>'+
       '</button>';
     div.querySelector(".item-row").addEventListener("click", function(){ toggle(it.id); });
 
-    // Ghi tạ + reps từng set — chỉ cho bài chính có tạ (bỏ finisher cardio m5)
-    if(g==="m" && it.id!=="m5"){
-      var setCount = parseInt((it.ex.d.match(/^\s*(\d+)/)||[])[1], 10) || 3;
-      var sets = getSets(state.current, it.id, setCount);
-      var prev = lastSets(state.current, it.id);
+    // Ghi tạ+reps (hoặc giây) từng set — chỉ cho bài chính có định lượng, bỏ cardio/finisher
+    var kind = (g==="m") ? exKind(it.ex.detail) : "none";
+    if(kind !== "none"){
+      var n = curProg().current;
+      var setCount = parseInt((String(it.ex.detail).match(/^\s*(\d+)/)||[])[1], 10) || 3;
+      var sets = getSets(n, it.id, setCount);
+      var prev = lastSets(n, it.id);
       var wrap = document.createElement("div");
       wrap.className = "sets";
       if(prev){
         var hint = document.createElement("div");
         hint.className = "last-hint";
-        hint.innerHTML = 'Lần trước (T'+prev.week+'): <b>'+fmtSets(prev.sets)+'</b>';
+        hint.innerHTML = 'Lần trước (T'+prev.week+'): <b>'+esc(fmtSets(prev.sets))+'</b>';
         wrap.appendChild(hint);
       }
-      var hold = isHold(it.ex.d);
+      var hold = (kind === "hold");
       sets.forEach(function(st, i){
         var r = document.createElement("div");
         r.className = "set-row";
@@ -643,41 +783,43 @@
   }
 
   function renderWeekStrip(m){
-    var strip = document.getElementById("weekStrip");
+    var d = curDef(), strip = document.getElementById("weekStrip");
     strip.innerHTML = "";
-    var base = (m.week-1)*3;
-    var labels = ["Thứ 2","Thứ 4","Thứ 6"];
-    for(var i=0;i<3;i++){
+    var dpw = d.daysPerWeek, order = d.sessionOrder, cur = curProg().current;
+    var base = (m.week-1)*dpw;
+    for(var i=0;i<dpw;i++){
       var idx = base+i;
-      var t = (idx%2===0)?"A":"B";
-      var isDone = idx < state.current;
-      var isCur = idx === state.current;
+      var t = order[idx % order.length];
+      var label = (d.dayLabels && d.dayLabels[i]!=null) ? d.dayLabels[i] : ("Buổi "+(i+1));
+      var isDone = idx < cur;
+      var isCur = idx === cur;
       var chip = document.createElement("div");
-      chip.className = "day-chip" + (isDone?" done":"") + (isCur?" current":"");
-      chip.innerHTML = '<div class="dlabel">'+labels[i]+'</div><div class="dtype">'+t+'</div>'+
+      chip.className = "day-chip" + (isDone?" done":"") + (isCur?" current":"") + (String(t).length>2?" long":"");
+      chip.innerHTML = '<div class="dlabel">'+esc(label)+'</div><div class="dtype">'+esc(t)+'</div>'+
         (isDone?'<div class="mark">✓</div>':'');
       strip.appendChild(chip);
     }
   }
 
   function updateProgress(){
-    var chk = checksFor(state.current);
-    var done = Object.keys(chk).filter(function(k){return chk[k];}).length;
+    var n = curProg().current;
+    var total = items.length;
+    var done = items.filter(function(it){ return chk[it.id]; }).length;
     document.getElementById("doneCount").textContent = done;
-    document.getElementById("totalCount").textContent = TOTAL;
-    document.getElementById("barFill").style.width = (done/TOTAL*100)+"%";
+    document.getElementById("totalCount").textContent = total;
+    document.getElementById("barFill").style.width = (total? (done/total*100) : 0)+"%";
     var btn = document.getElementById("finishBtn");
-    if(done>=TOTAL){
+    if(total>0 && done>=total){
       btn.disabled = false; btn.classList.add("ready");
       btn.textContent = "Kết thúc buổi · chuyển buổi tiếp theo →";
     } else {
       btn.disabled = true; btn.classList.remove("ready");
-      btn.textContent = "Còn " + (TOTAL-done) + " bài · hoàn thành để kết thúc";
+      btn.textContent = "Còn " + (total-done) + " bài · hoàn thành để kết thúc";
     }
   }
 
   function toggle(id){
-    var chk = checksFor(state.current);
+    var chk = checksFor(curProg().current);
     chk[id] = !chk[id];
     save();
     render();
@@ -685,12 +827,12 @@
 
   // ---- Kết thúc buổi ----
   document.getElementById("finishBtn").addEventListener("click", function(){
-    var m = meta(state.current);
-    var weekDone = (m.pos === 2); // buổi thứ 3 trong tuần
-    state.current += 1;
+    var m = meta(curProg().current);
+    var weekDone = (m.pos === curDef().daysPerWeek - 1); // buổi cuối trong tuần
+    curProg().current += 1;
     save();
     if(weekDone) showPop("week", m.week);
-    else showPop("day", m.type);
+    else showPop("day", m.title);
     render();
   });
 
@@ -701,15 +843,15 @@
     var ti = document.getElementById("popTitle");
     var tx = document.getElementById("popText");
     var go = document.getElementById("popGo");
-    var nm = meta(state.current);
+    var nm = meta(curProg().current);
     if(kind==="week"){
       em.textContent = "🏆";
       ti.textContent = "Tuần " + val + " hoàn thành!";
-      tx.textContent = "Đủ 3 buổi tuần này. Bắt đầu Tuần " + nm.week + " với Buổi " + nm.type + ".";
+      tx.textContent = "Đủ " + curDef().daysPerWeek + " buổi tuần này. Bắt đầu Tuần " + nm.week + " với " + nm.title + ".";
     } else {
       em.textContent = "🔥";
-      ti.textContent = "Xong Buổi " + val + "!";
-      tx.textContent = "Buổi tiếp theo: Buổi " + nm.type + " (buổi " + (nm.pos+1) + "/3 tuần " + nm.week + ").";
+      ti.textContent = "Xong " + val + "!";
+      tx.textContent = "Buổi tiếp theo: " + nm.title + " (buổi " + (nm.pos+1) + "/" + curDef().daysPerWeek + " tuần " + nm.week + ").";
     }
     go.textContent = "Tiếp tục";
     go.style.display = "";
@@ -733,23 +875,24 @@
   function openMenu(){
     resetArmed = false;
     resetResetBtn();
-    document.getElementById("mBack").style.opacity = state.current>0 ? "1" : ".4";
-    document.getElementById("mBackSub").textContent = state.current>0 ? "Về buổi liền trước" : "Đang ở buổi đầu tiên";
+    var cur = curProg().current;
+    document.getElementById("mBack").style.opacity = cur>0 ? "1" : ".4";
+    document.getElementById("mBackSub").textContent = cur>0 ? "Về buổi liền trước" : "Đang ở buổi đầu tiên";
     menuSheet.classList.add("show");
   }
   function closeMenu(){ menuSheet.classList.remove("show"); }
   function resetResetBtn(){
     document.getElementById("mReset").classList.toggle("armed", false);
-    document.getElementById("mResetLabel").innerHTML = 'Xóa toàn bộ tiến độ<small>Về Tuần 1 · Buổi A, xóa cả mức tạ</small>';
+    document.getElementById("mResetLabel").innerHTML = 'Xóa tiến độ plan này<small>Về Tuần 1, xóa tick &amp; mức tạ của plan đang dùng</small>';
   }
   document.getElementById("menuBtn").addEventListener("click", openMenu);
   menuSheet.addEventListener("click", function(e){ if(e.target===menuSheet) closeMenu(); });
 
   document.getElementById("mRedo").addEventListener("click", function(){
-    state.checks[state.current]={}; save(); render(); closeMenu();
+    curProg().checks[curProg().current]={}; save(); render(); closeMenu();
   });
   document.getElementById("mBack").addEventListener("click", function(){
-    if(state.current>0){ state.current-=1; save(); render(); }
+    if(curProg().current>0){ curProg().current-=1; save(); render(); }
     closeMenu();
   });
   document.getElementById("mReset").addEventListener("click", function(){
@@ -758,7 +901,7 @@
       document.getElementById("mResetLabel").innerHTML = '⚠︎ Chạm lần nữa để xác nhận xóa<small>Không thể hoàn tác</small>';
       return;
     }
-    state={current:0,checks:{},logs:{},weights:{}}; save(); render(); closeMenu();
+    curPlan().progress = { current:0, checks:{}, logs:{} }; save(); render(); closeMenu();
   });
 
   // ---- Xuất / Nhập dữ liệu (backup) ----
@@ -786,12 +929,16 @@
       try{
         var parsed = JSON.parse(reader.result);
         var s = parsed && parsed.state ? parsed.state : parsed; // chấp nhận cả file dạng bọc lẫn state thô
-        if(!s || typeof s.current !== "number" || typeof s.checks !== "object") throw new Error("bad");
-        if(!s.logs) s.logs = {};
-        if(!s.checks) s.checks = {};
-        if(!s.weights) s.weights = {};
+        if(s && s.plans && s.activePlan && s.plans[s.activePlan]){
+          if(!s.weights) s.weights = {}; // state đa-plan
+        } else if(s && typeof s.current === "number"){
+          // backup bản cũ → di trú sang đa-plan
+          var e0 = makePlanEntry(BUILTIN_PLAN, null);
+          e0.progress = { current:s.current||0, checks:s.checks||{}, logs:s.logs||{} };
+          s = { activePlan:"default", plans:{ "default":e0 }, weights: s.weights||{} };
+        } else { throw new Error("bad"); }
         state = s; save(); render(); closeMenu();
-        showMsg("✅", "Đã khôi phục dữ liệu", "Tiến độ và mức tạ đã được nạp từ file backup.");
+        showMsg("✅", "Đã khôi phục dữ liệu", "Toàn bộ plan, tiến độ, mức tạ và cân nặng đã được nạp từ backup.");
       }catch(e){
         closeMenu();
         showMsg("⚠️", "File không hợp lệ", "Hãy chọn đúng file .json đã xuất từ app này.");
@@ -899,6 +1046,162 @@
   document.getElementById("tCancel").addEventListener("click", function(){ stopTimer(); });
   document.addEventListener("visibilitychange", function(){
     if(document.visibilityState==="visible" && tId){ reqWake(); ensureAudio(); }
+  });
+
+  // ---- Thư viện kế hoạch (plans) ----
+  var planModal = document.getElementById("planModal");
+  function openPlanModal(){
+    document.getElementById("pmUpload").hidden = true;
+    document.getElementById("pmPaste").value = "";
+    renderPlanList();
+    planModal.classList.add("show");
+  }
+  function closePlanModal(){ planModal.classList.remove("show"); }
+  document.getElementById("planChipBtn").addEventListener("click", openPlanModal);
+  document.getElementById("pmClose").addEventListener("click", closePlanModal);
+  planModal.addEventListener("click", function(e){ if(e.target===planModal) closePlanModal(); });
+  document.getElementById("pmAddToggle").addEventListener("click", function(){
+    var u = document.getElementById("pmUpload"); u.hidden = !u.hidden;
+    if(!u.hidden) document.getElementById("pmPaste").focus();
+  });
+
+  function fmtDate(iso){
+    if(!iso) return "Có sẵn";
+    try{ var d=new Date(iso); return "Thêm " + pad2(d.getDate())+"/"+pad2(d.getMonth()+1)+"/"+d.getFullYear(); }catch(e){ return ""; }
+  }
+  function planSummary(def){
+    var order = def.sessionOrder||[];
+    var uniq = order.filter(function(v,i){ return order.indexOf(v)===i; });
+    return { dpw: def.daysPerWeek||order.length, kinds: uniq };
+  }
+  function renderPlanList(){
+    var list = document.getElementById("pmList");
+    list.innerHTML = "";
+    Object.keys(state.plans).forEach(function(id){
+      var p = state.plans[id], def = p.def, active = (id===state.activePlan);
+      var s = planSummary(def);
+      var wk = Math.floor((p.progress.current||0)/(def.daysPerWeek||1))+1;
+      var card = document.createElement("div");
+      card.className = "plan-item" + (active?" active":"");
+      card.innerHTML =
+        '<div class="pi-top"><div class="pi-name">'+esc(def.name)+'</div>'+
+          (active?'<span class="pi-badge">Đang dùng</span>':'')+'</div>'+
+        (def.goal?'<div class="pi-goal">'+esc(def.goal)+'</div>':'')+
+        '<div class="pi-meta">'+
+          '<span class="pi-chip">'+s.dpw+' buổi/tuần</span>'+
+          '<span class="pi-chip">'+s.kinds.length+' kiểu: '+s.kinds.map(esc).join(" · ")+'</span>'+
+          '<span class="pi-chip">Đang ở tuần '+wk+'</span>'+
+        '</div>'+
+        '<div class="pi-foot"><span class="pi-date">'+fmtDate(p.uploadedAt)+'</span>'+
+          (id==="default" ? '' : '<button class="pi-del" data-id="'+id+'">Xoá</button>')+
+        '</div>';
+      if(!active) card.addEventListener("click", function(e){ if(e.target.classList.contains("pi-del")) return; selectPlan(id); });
+      var del = card.querySelector(".pi-del");
+      if(del){
+        del.addEventListener("click", function(e){
+          e.stopPropagation();
+          if(!del.classList.contains("armed")){
+            del.classList.add("armed"); del.textContent="Chắc chắn?";
+            setTimeout(function(){ if(del){ del.classList.remove("armed"); del.textContent="Xoá"; } }, 2500);
+            return;
+          }
+          deletePlan(id);
+        });
+      }
+      list.appendChild(card);
+    });
+  }
+  function selectPlan(id){ if(!state.plans[id]) return; state.activePlan=id; save(); render(); closePlanModal(); }
+  function deletePlan(id){
+    if(id==="default" || !state.plans[id]) return;
+    var wasActive = (id===state.activePlan);
+    delete state.plans[id];
+    if(wasActive) state.activePlan = Object.keys(state.plans)[0];
+    save(); render(); renderPlanList();
+  }
+
+  // Chuẩn hoá & kiểm tra plan upload
+  function normEx(x){
+    if(x==null) return null;
+    if(typeof x==="string") return { name:x.trim(), detail:"" };
+    var o = { name:String(x.name!=null?x.name:(x.n!=null?x.n:"")).trim(),
+              detail:String(x.detail!=null?x.detail:(x.d!=null?x.d:"")).trim() };
+    if(x.alt!=null && String(x.alt).trim()) o.alt = String(x.alt).trim();
+    if(x.note!=null && String(x.note).trim()) o.note = String(x.note).trim();
+    return o;
+  }
+  function normExList(arr){ return (Array.isArray(arr)?arr:[]).map(normEx).filter(function(e){ return e && e.name; }); }
+  function validatePlan(d){
+    if(!d || typeof d!=="object") return "Không phải JSON hợp lệ.";
+    if(!d.name || !String(d.name).trim()) return 'Thiếu "name" (tên kế hoạch).';
+    if(!Array.isArray(d.sessionOrder) || !d.sessionOrder.length) return 'Thiếu "sessionOrder" (thứ tự các buổi).';
+    if(!d.sessions || typeof d.sessions!=="object") return 'Thiếu "sessions".';
+    for(var i=0;i<d.sessionOrder.length;i++){
+      var k = d.sessionOrder[i];
+      if(!d.sessions[k]) return 'sessionOrder có "'+k+'" nhưng thiếu sessions["'+k+'"].';
+      if(!Array.isArray(d.sessions[k].exercises) || !d.sessions[k].exercises.length) return 'Buổi "'+k+'" chưa có bài tập (exercises).';
+    }
+    return null;
+  }
+  function normalizePlan(raw){
+    var d = {
+      schema:"gym-plan/v1",
+      name:String(raw.name).trim(),
+      goal: raw.goal!=null?String(raw.goal).trim():"",
+      sessionOrder: raw.sessionOrder.map(String),
+      daysPerWeek: (raw.daysPerWeek && raw.daysPerWeek>=1) ? Math.floor(raw.daysPerWeek) : raw.sessionOrder.length,
+      warmup: normExList(raw.warmup),
+      cooldown: normExList(raw.cooldown),
+      sessions: {}
+    };
+    Object.keys(raw.sessions).forEach(function(k){
+      var s = raw.sessions[k] || {};
+      d.sessions[String(k)] = { title:(s.title!=null?String(s.title):("Buổi "+k)), exercises: normExList(s.exercises) };
+    });
+    if(Array.isArray(raw.dayLabels) && raw.dayLabels.length===d.daysPerWeek) d.dayLabels = raw.dayLabels.map(String);
+    else { d.dayLabels=[]; for(var j=0;j<d.daysPerWeek;j++) d.dayLabels.push("Buổi "+(j+1)); }
+    return d;
+  }
+  function addPlanFromText(text){
+    var raw;
+    try{ raw = JSON.parse(text); }
+    catch(e){ showMsg("⚠️","JSON lỗi cú pháp","Kiểm tra lại dấu ngoặc/phẩy. " + (e.message||"")); return; }
+    if(raw && raw.plan && raw.sessions===undefined) raw = raw.plan;
+    var err = validatePlan(raw);
+    if(err){ showMsg("⚠️","Kế hoạch chưa hợp lệ", err); return; }
+    var def = normalizePlan(raw);
+    var id = newId();
+    state.plans[id] = makePlanEntry(def, new Date().toISOString());
+    state.activePlan = id; // plan mới thành mặc định
+    save(); render(); closePlanModal();
+    showMsg("✅","Đã thêm kế hoạch", '"'+def.name+'" đang được dùng. Tiến độ bắt đầu từ Tuần 1.');
+  }
+  document.getElementById("pmImport").addEventListener("click", function(){
+    var t = document.getElementById("pmPaste").value.trim();
+    if(!t){ showMsg("⚠️","Chưa có nội dung",'Dán JSON vào ô, hoặc bấm "Chọn file .json".'); return; }
+    addPlanFromText(t);
+  });
+  document.getElementById("pmPickFile").addEventListener("click", function(){ document.getElementById("pmFile").click(); });
+  document.getElementById("pmFile").addEventListener("change", function(e){
+    var f = e.target.files[0]; e.target.value="";
+    if(!f) return;
+    var reader = new FileReader();
+    reader.onload = function(){ addPlanFromText(String(reader.result)); };
+    reader.readAsText(f);
+  });
+  document.getElementById("pmTemplate").addEventListener("click", function(){
+    var json = JSON.stringify(curDef(), null, 2);
+    try{
+      var blob = new Blob([json], {type:"application/json"});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href=url; a.download="gym-plan-template.json";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+    }catch(e){
+      document.getElementById("pmUpload").hidden=false;
+      document.getElementById("pmPaste").value = json;
+    }
   });
 
   render();
