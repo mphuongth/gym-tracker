@@ -167,6 +167,9 @@
   .weight-head{display:flex;align-items:center;gap:9px;margin-bottom:14px}
   .weight-head .tag{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
   .weight-head .rule{flex:1;height:1px;background:var(--line)}
+  .wchart-toggle{border:1px solid var(--line);background:var(--surface);color:var(--muted);font:inherit;
+    font-size:11.5px;font-weight:800;padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;white-space:nowrap}
+  .wchart-toggle:hover{color:var(--ink);border-color:var(--muted)}
   .weight-input-row{display:flex;align-items:center;gap:10px}
   .wlab{font-size:14px;font-weight:700}
   .wlab b{color:var(--accent-ink)}
@@ -381,17 +384,11 @@
     </div>
   </header>
 
-  <main id="sections"></main>
-
-  <div class="safety">
-    <span class="st">⚠︎ An toàn cho lưng</span>
-    <p><b>Dừng ngay</b> nếu đau nhói, đau lan xuống chân, tê hoặc yếu chân. Giữ lưng trung tính ở mọi bài (Squat, Hip Thrust, Leg Press). Nghỉ giữa hiệp 60–90s. Tránh chạy bộ nhiều — ưu tiên bike, elliptical, rowing, đi bộ dốc.</p>
-  </div>
-
   <div class="weight-card">
     <div class="weight-head">
       <span class="tag">Cân nặng theo tuần</span>
       <span class="rule"></span>
+      <button class="wchart-toggle" id="wChartToggle" type="button" aria-expanded="false">Biểu đồ ▾</button>
     </div>
     <div class="weight-input-row">
       <span class="wlab">Đầu <b id="wWeekLabel">Tuần 1</b></span>
@@ -401,7 +398,14 @@
       </div>
     </div>
     <div class="wdelta" id="wDelta"></div>
-    <div class="chart-wrap"><div class="chart" id="wChart"></div></div>
+    <div class="chart-wrap" id="wChartWrap" hidden><div class="chart" id="wChart"></div></div>
+  </div>
+
+  <main id="sections"></main>
+
+  <div class="safety">
+    <span class="st">⚠︎ An toàn cho lưng</span>
+    <p><b>Dừng ngay</b> nếu đau nhói, đau lan xuống chân, tê hoặc yếu chân. Giữ lưng trung tính ở mọi bài (Squat, Hip Thrust, Leg Press). Nghỉ giữa hiệp 60–90s. Tránh chạy bộ nhiều — ưu tiên bike, elliptical, rowing, đi bộ dốc.</p>
   </div>
 </div>
 
@@ -735,6 +739,13 @@
     svg += '</svg>';
     el.innerHTML = svg;
   }
+  document.getElementById("wChartToggle").addEventListener("click", function(){
+    var w = document.getElementById("wChartWrap");
+    var open = w.hidden;              // đang ẩn → sẽ mở
+    w.hidden = !open;
+    this.setAttribute("aria-expanded", String(open));
+    this.textContent = open ? "Biểu đồ ▴" : "Biểu đồ ▾";
+  });
   document.getElementById("wInput").addEventListener("input", function(){
     var wk = meta(curProg().current).week;
     var v = this.value.replace(",", ".");
