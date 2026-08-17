@@ -265,6 +265,13 @@
   .sheet-btn:hover{border-color:var(--muted)}
   .sheet-btn .em{font-size:19px;width:24px;text-align:center;flex-shrink:0}
   .sheet-btn small{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-top:1px}
+  .sheet-note{margin:0 4px 10px;font-size:13px;font-weight:700;color:var(--ink)}
+  .excl-row{display:flex;align-items:center;gap:10px;padding:11px 13px;margin-bottom:8px;
+            border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
+  .excl-name{flex:1;font-size:14px;font-weight:700;color:var(--ink)}
+  .excl-undo{flex-shrink:0;border:1px solid var(--line);background:var(--surface);color:var(--muted);
+             border-radius:999px;padding:5px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  .excl-undo:hover{color:var(--ink);border-color:var(--muted)}
   .sheet-btn.danger{color:#D33A2C}
   .sheet-btn.danger .em{filter:none}
   :root[data-theme="dark"] .sheet-btn.danger,@media (prefers-color-scheme:dark){.sheet-btn.danger{color:#FF6F5E}}
@@ -436,10 +443,30 @@
     <button class="sheet-btn" id="mRedo"><span class="em">↺</span><span>Làm lại buổi hiện tại<small>Bỏ hết dấu tick (giữ mức tạ đã ghi)</small></span></button>
     <button class="sheet-btn" id="mBack"><span class="em">←</span><span>Quay lại buổi trước<small id="mBackSub">Về buổi liền trước</small></span></button>
     <button class="sheet-btn" id="mSkipDay"><span class="em">⤼</span><span>Bỏ qua buổi này<small id="mSkipSub">Nhảy sang buổi kế, đánh dấu đã bỏ qua</small></span></button>
+    <button class="sheet-btn" id="mExcluded"><span class="em">🚫</span><span>Bài đã loại khỏi buổi sau<small id="mExclSub">Chưa loại bài nào</small></span></button>
     <button class="sheet-btn" id="mExport"><span class="em">⬇</span><span>Xuất dữ liệu (backup)<small>Tải file .json chứa toàn bộ tiến độ &amp; mức tạ</small></span></button>
     <button class="sheet-btn" id="mImport"><span class="em">⬆</span><span>Nhập dữ liệu (khôi phục)<small>Chọn file .json đã xuất trước đó — sẽ ghi đè hiện tại</small></span></button>
     <input type="file" id="importFile" accept="application/json,.json" style="display:none">
     <button class="sheet-btn danger" id="mReset"><span class="em">🗑</span><span id="mResetLabel">Xóa toàn bộ tiến độ<small>Về Tuần 1 · Buổi A, xóa cả mức tạ</small></span></button>
+  </div>
+</div>
+
+<div class="sheet-wrap" id="skipSheet">
+  <div class="sheet">
+    <div class="grip"></div>
+    <h3>Bỏ qua bài tập</h3>
+    <p class="sheet-note" id="skipExName"></p>
+    <button class="sheet-btn" id="skipOnce"><span class="em">⤼</span><span>Chỉ bỏ qua buổi này<small>Các buổi sau vẫn có bài này</small></span></button>
+    <button class="sheet-btn" id="skipAlways"><span class="em">🚫</span><span>Bỏ qua cả các buổi sau<small>Loại hẳn bài này khỏi mọi buổi kế tiếp</small></span></button>
+    <button class="sheet-btn" id="skipCancel"><span class="em">✕</span><span>Hủy</span></button>
+  </div>
+</div>
+
+<div class="sheet-wrap" id="exclSheet">
+  <div class="sheet">
+    <div class="grip"></div>
+    <h3>Bài đã loại khỏi buổi sau</h3>
+    <div id="exclList"></div>
   </div>
 </div>
 
@@ -532,7 +559,7 @@
   function newId(){ return "plan_" + Date.now().toString(36) + "_" + Math.floor(Math.random()*1e6).toString(36); }
   function makePlanEntry(def, uploadedAt){
     return { name:def.name, goal:def.goal||"", uploadedAt:uploadedAt||null, def:def,
-             progress:{ current:0, checks:{}, logs:{}, skipped:{} } };
+             progress:{ current:0, checks:{}, logs:{}, skipped:{}, excluded:{} } };
   }
   function defaultState(){
     var st = { activePlan:"default", plans:{}, weights:{} };
@@ -547,7 +574,7 @@
       if(s && typeof s.current==="number"){
         var st = { activePlan:"default", plans:{}, weights: s.weights||{} };
         var e = makePlanEntry(BUILTIN_PLAN, null);
-        e.progress = { current:s.current||0, checks:s.checks||{}, logs:s.logs||{}, skipped:{} };
+        e.progress = { current:s.current||0, checks:s.checks||{}, logs:s.logs||{}, skipped:{}, excluded:{} };
         st.plans["default"] = e;
         return st;
       }
@@ -574,11 +601,18 @@
     (d.warmup||[]).forEach(function(x,i){ items.push({id:"w"+i, group:"w", ex:x}); });
     (sess.exercises||[]).forEach(function(x,i){ items.push({id:"m"+i, group:"m", ex:x}); });
     (d.cooldown||[]).forEach(function(x,i){ items.push({id:"c"+i, group:"c", ex:x}); });
-    return items;
+    // Loại các bài đã chọn "bỏ qua cả các buổi sau" (chỉ áp dụng cho buổi sau buổi đã chọn)
+    var ex = excludedEx();
+    return items.filter(function(it){
+      var from = ex[it.ex.name];
+      return !(from != null && n > from);
+    });
   }
   function checksFor(n){ var p=curProg(); if(!p.checks[n]) p.checks[n]={}; return p.checks[n]; }
   function logsFor(n){ var p=curProg(); if(!p.logs[n]) p.logs[n]={}; return p.logs[n]; }
   function skippedSessions(){ var p=curProg(); if(!p.skipped) p.skipped={}; return p.skipped; }
+  // Bài bị loại khỏi các buổi sau: { "<tên bài>": <chỉ số buổi đã chọn loại> }
+  function excludedEx(){ var p=curProg(); if(!p.excluded) p.excluded={}; return p.excluded; }
 
   // Lấy mảng set {kg,reps} cho 1 bài, tự tạo đủ số set & chuyển đổi dữ liệu cũ (chuỗi kg đơn)
   function getSets(n, id, count){
@@ -774,7 +808,11 @@
       '</button>'+
       '<button class="skip-btn" type="button">'+(skip?"Hoàn tác":"Bỏ qua")+'</button>';
     div.querySelector(".item-row").addEventListener("click", function(){ toggleDone(it.id); });
-    div.querySelector(".skip-btn").addEventListener("click", function(e){ e.stopPropagation(); toggleSkip(it.id); });
+    div.querySelector(".skip-btn").addEventListener("click", function(e){
+      e.stopPropagation();
+      if(skip) setStatus(it.id, null);        // đang bỏ qua → hoàn tác ngay
+      else askSkip(it);                        // hỏi: chỉ buổi này hay cả các buổi sau
+    });
 
     // Ghi tạ+reps (hoặc giây) từng set — chỉ cho bài chính có định lượng, không hiện khi đã bỏ qua
     var kind = (g==="m") ? exKind(it.ex.detail) : "none";
@@ -848,9 +886,9 @@
     document.getElementById("totalCount").textContent = total;
     document.getElementById("barFill").style.width = (total? (done/total*100) : 0)+"%";
     var btn = document.getElementById("finishBtn");
-    if(total>0 && done>=total){
+    if(done>=total){
       btn.disabled = false; btn.classList.add("ready");
-      btn.textContent = "Kết thúc buổi · chuyển buổi tiếp theo →";
+      btn.textContent = total===0 ? "Buổi trống · chuyển buổi tiếp theo →" : "Kết thúc buổi · chuyển buổi tiếp theo →";
     } else {
       btn.disabled = true; btn.classList.remove("ready");
       btn.textContent = "Còn " + (total-done) + " bài · hoàn thành để kết thúc";
@@ -867,10 +905,57 @@
     var chk = checksFor(curProg().current);
     setStatus(id, chk[id]===true ? null : true);
   }
-  function toggleSkip(id){
-    var chk = checksFor(curProg().current);
-    setStatus(id, chk[id]==="skip" ? null : "skip");
+
+  // ---- Bỏ qua 1 bài: chỉ buổi này, hay loại khỏi cả các buổi sau ----
+  var skipSheet = document.getElementById("skipSheet"), pendingSkip = null;
+  function askSkip(it){
+    pendingSkip = it;
+    document.getElementById("skipExName").textContent = it.ex.name;
+    skipSheet.classList.add("show");
   }
+  function closeSkipSheet(){ skipSheet.classList.remove("show"); pendingSkip = null; }
+  skipSheet.addEventListener("click", function(e){ if(e.target===skipSheet) closeSkipSheet(); });
+  document.getElementById("skipCancel").addEventListener("click", closeSkipSheet);
+  document.getElementById("skipOnce").addEventListener("click", function(){
+    var it = pendingSkip; if(!it) return;
+    closeSkipSheet();
+    setStatus(it.id, "skip");
+  });
+  document.getElementById("skipAlways").addEventListener("click", function(){
+    var it = pendingSkip; if(!it) return;
+    var name = it.ex.name;
+    excludedEx()[name] = curProg().current;   // các buổi > buổi này sẽ không còn bài này
+    closeSkipSheet();
+    setStatus(it.id, "skip");                 // (đã save + render bên trong)
+    showMsg("🚫", "Đã loại khỏi các buổi sau", '"' + name + '" sẽ không xuất hiện ở những buổi kế tiếp. Khôi phục trong Tùy chọn → Bài đã loại.');
+  });
+
+  // ---- Danh sách bài đã loại & khôi phục ----
+  var exclSheet = document.getElementById("exclSheet");
+  exclSheet.addEventListener("click", function(e){ if(e.target===exclSheet) exclSheet.classList.remove("show"); });
+  function renderExclList(){
+    var box = document.getElementById("exclList"), ex = excludedEx();
+    var names = Object.keys(ex);
+    box.innerHTML = "";
+    if(!names.length){ box.innerHTML = '<p class="sheet-note">Chưa loại bài nào. Khi bỏ qua một bài, chọn "Bỏ qua cả các buổi sau" để loại bài đó.</p>'; return; }
+    names.forEach(function(nm){
+      var row = document.createElement("div");
+      row.className = "excl-row";
+      row.innerHTML = '<span class="excl-name">'+esc(nm)+'</span><button class="excl-undo" type="button">Khôi phục</button>';
+      row.querySelector(".excl-undo").addEventListener("click", function(){
+        delete excludedEx()[nm]; save(); render(); renderExclList(); updateExclBtn();
+      });
+      box.appendChild(row);
+    });
+  }
+  function updateExclBtn(){
+    var n = Object.keys(excludedEx()).length;
+    document.getElementById("mExclSub").textContent = n ? (n + " bài đang bị loại — chạm để khôi phục") : "Chưa loại bài nào";
+    document.getElementById("mExcluded").style.opacity = n ? "1" : ".55";
+  }
+  document.getElementById("mExcluded").addEventListener("click", function(){
+    closeMenu(); renderExclList(); exclSheet.classList.add("show");
+  });
   // Cuộn lên đầu trang (tôn trọng reduced-motion)
   function scrollTop(){
     try{
@@ -933,6 +1018,7 @@
     var cur = curProg().current;
     document.getElementById("mBack").style.opacity = cur>0 ? "1" : ".4";
     document.getElementById("mBackSub").textContent = cur>0 ? "Về buổi liền trước" : "Đang ở buổi đầu tiên";
+    updateExclBtn();
     menuSheet.classList.add("show");
   }
   function closeMenu(){ menuSheet.classList.remove("show"); }
@@ -967,7 +1053,7 @@
       document.getElementById("mResetLabel").innerHTML = '⚠︎ Chạm lần nữa để xác nhận xóa<small>Không thể hoàn tác</small>';
       return;
     }
-    curPlan().progress = { current:0, checks:{}, logs:{}, skipped:{} }; save(); render(); closeMenu();
+    curPlan().progress = { current:0, checks:{}, logs:{}, skipped:{}, excluded:{} }; save(); render(); closeMenu();
   });
 
   // ---- Xuất / Nhập dữ liệu (backup) ----
